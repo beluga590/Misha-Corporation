@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакти — Misha Corporation: Як нас знайти та зв'язатися</title>
+    <meta name="description" content="Контактна інформація Misha Corp. Наші координати, графік роботи та форма для інвестицій. Спробуйте вгадати номер телефону, якщо наважитесь!">
+    <meta name="keywords" content="Misha Corporation контакти, адреса офісу, форма зв'язку, жартівливий телефон, інвестиції">
+    <meta name="author" content="Misha Corporation">
+    <link rel="canonical" href="https://www.mishacorp.com/contacts.html">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <div class="gold-bar"></div>
+                <span class="logo-text">Misha Corporation</span>
+            </div>
+            <nav class="nav" aria-label="Головна навігація">
+                <ul class="nav-list">
+                    <li><a href="index.html">Головна</a></li>
+                    <li><a href="about.html">Про нас</a></li>
+                    <li><a href="contacts.html" class="active" aria-current="page">Контакти</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title">Контакти</h1>
+            </div>
+        </section>
+
+        <section class="coordinates">
+            <div class="container">
+                <h2 class="section-title">Наші Координати</h2>
+                <div class="coordinates-grid">
+                    <div class="coordinate-item">
+                        <div class="coordinate-label">Адреса</div>
+                        <div class="coordinate-value">Офіс №0, провулок Офшорний, будівля у формі бублика (символізує ваші статки)</div>
+                    </div>
+                    <div class="coordinate-item">
+                        <div class="coordinate-label">Графік</div>
+                        <div class="coordinate-value">Працюємо, коли Михайлу нудно, зазвичай з 03:45 до 03:50 ночі</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact-form-section">
+            <div class="container">
+                <h2 class="section-title">Форма для інвестицій</h2>
+                <div class="form-container" id="formContainer">
+                    <form class="contact-form" id="chanceForm">
+                        <div class="form-group">
+                            <label for="name">Ім'я</label>
+                            <input type="text" id="name" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Сума інвестиції (в грн)</label>
+                            <input type="number" id="amount" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Причина, чому ви ще не віддали нам гроші</label>
+                            <textarea id="reason" class="form-textarea" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="submit-form-btn">Надіслати</button>
+                    </form>
+                </div>
+
+                <div class="call-center" id="callCenter" style="display: none;">
+                    <h3 class="call-center-title">Вашу заявку прийнято до розгляду (ні). Спробуйте зателефонувати прямо зараз!</h3>
+                    
+                    <div class="phone-display" id="phoneDisplay">+380</div>
+                    
+                    <p class="phone-disclaimer">Ви нам дозвонитесь, якщо пощастить! Шанс вгадати номер: 1 до 999 трильйонів</p>
+                    
+                    <button class="guess-btn" id="guessBtn">Я вгадав номер!</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-left">Misha Corporation © 2026</div>
+            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
+            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+        </div>
+    </footer>
+
+    <script src="script.js" defer></script>
+</body>
+</html>
