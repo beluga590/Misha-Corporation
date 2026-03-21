@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Misha Corp - Контакти</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header class="header">
@@ -21,6 +23,16 @@
                     <li><a href="contacts.html" class="active">Контакти</a></li>
                 </ul>
             </nav>
+            <div class="account-header-btn" id="accountHeaderBtn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html" id="dashboardLink">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -89,6 +101,91 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+<script src="script.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accountBtn = document.getElementById('accountBtn');
+        const accountDropdown = document.getElementById('accountDropdown');
+        
+        if (accountBtn) {
+            accountBtn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                
+                const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
+                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlrb29uYWx4enhzZXVrdmV2eWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2OTY3MDUsImV4cCI6MjA1NjI3MjcwNX0.d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                const savedUser = localStorage.getItem('currentUser');
+                let isValid = false;
+                let userData = null;
+                
+                if (savedUser) {
+                    try {
+                        const user = JSON.parse(savedUser);
+                        const { data, error } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('id', user.id)
+                            .single();
+                        if (data && !error) {
+                            isValid = true;
+                            userData = data;
+                            localStorage.setItem('currentUser', JSON.stringify(data));
+                        } else {
+                            localStorage.removeItem('currentUser');
+                        }
+                    } catch(err) {
+                        localStorage.removeItem('currentUser');
+                    }
+                }
+                
+                if (isValid && userData) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    if (accountDropdown) {
+                        accountDropdown.classList.toggle('show');
+                    }
+                }
+            });
+        }
+        
+        document.addEventListener('click', function() {
+            if (accountDropdown) {
+                accountDropdown.classList.remove('show');
+            }
+        });
+        
+        // Остальной код для contacts.html (форма и телефон)
+        const chanceForm = document.getElementById('chanceForm');
+        const formContainer = document.getElementById('formContainer');
+        const callCenter = document.getElementById('callCenter');
+        const phoneDisplay = document.getElementById('phoneDisplay');
+        const guessBtn = document.getElementById('guessBtn');
+
+        if (chanceForm) {
+            chanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (formContainer) formContainer.style.display = 'none';
+                if (callCenter) {
+                    callCenter.style.display = 'block';
+                    if (phoneDisplay) {
+                        setInterval(() => {
+                            const part1 = Math.floor(Math.random() * 10000);
+                            const part2 = Math.floor(Math.random() * 10000);
+                            phoneDisplay.textContent = `+380 ${part1.toString().padStart(4, '0')} ${part2.toString().padStart(4, '0')}`;
+                        }, 100);
+                    }
+                }
+            });
+        }
+
+        if (guessBtn) {
+            guessBtn.addEventListener('click', function() {
+                alert('Неправда. Спробуйте ще раз через 100 років');
+            });
+        }
+    });
+</script>
+    
 </body>
 </html>

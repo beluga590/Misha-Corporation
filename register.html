@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Реєстрація - Misha Corporation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .auth-page {
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            margin-top: 80px;
+        }
+        
+        .auth-container {
+            max-width: 450px;
+            width: 100%;
+            background: #111316;
+            border: 2px solid #e6b422;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        .auth-title {
+            font-size: 2rem;
+            color: #e6b422;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .auth-subtitle {
+            color: #9ca3af;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e6b422;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #e6b422;
+        }
+        
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            background: #e6b422;
+            color: #0a0c0f;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        
+        .auth-btn:hover {
+            background: #ffd966;
+        }
+        
+        .auth-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .auth-message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .auth-message.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        
+        .auth-message.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+        
+        .auth-message.special {
+            display: block;
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+        
+        .auth-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #9ca3af;
+        }
+        
+        .auth-link a {
+            color: #e6b422;
+            text-decoration: none;
+        }
+        
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .special-password-notice {
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            text-align: center;
+            font-size: 12px;
+            border: 1px solid #f59e0b;
+            display: none;
+        }
+        
+        .special-password-notice.show {
+            display: block;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .footer {
+            background: #111316;
+            padding: 32px 0;
+            border-top: 1px solid #2a2f36;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <div class="gold-bar"></div>
+                <span class="logo-text">Misha Corporation</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="index.html">Головна</a></li>
+                    <li><a href="crypto.html">₿ Крипта</a></li>
+                    <li><a href="about.html">Про нас</a></li>
+                    <li><a href="contacts.html">Контакти</a></li>
+                </ul>
+            </nav>
+            <div class="account-header-btn" id="accountHeaderBtn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="auth-page">
+        <div class="auth-container">
+            <h1 class="auth-title">Реєстрація</h1>
+            <p class="auth-subtitle">Створіть новий акаунт</p>
+            
+            <div class="auth-message" id="message"></div>
+            
+            <div class="special-password-notice" id="specialNotice">
+                🏆 Використовуєте спеціальний пароль! Титул: <strong>Президент</strong>
+            </div>
+            
+            <form id="registerForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="firstName">Ім'я</label>
+                    <input type="text" id="firstName" placeholder="Михайло" required autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastName">Прізвище</label>
+                    <input type="text" id="lastName" placeholder="Корпоративний" required autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="off">
+                </div>
+                
+                <button type="button" class="auth-btn" id="registerBtn">Створити аккаунт</button>
+            </form>
+            
+            <div class="auth-link">
+                Вже є акаунт? <a href="login.html">Увійти</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-left">Misha Corporation © 2026</div>
+            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
+            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Сторінка завантажена');
+            
+            // Конфігурація Supabase - перевірте чи ключ правильний
+           const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+    }
+});
+            
+            const messageDiv = document.getElementById('message');
+            const specialNotice = document.getElementById('specialNotice');
+            const registerBtn = document.getElementById('registerBtn');
+            
+            const firstNameInput = document.getElementById('firstName');
+            const lastNameInput = document.getElementById('lastName');
+            const passwordInput = document.getElementById('password');
+
+            // Перевірка спеціального пароля
+            passwordInput.addEventListener('input', function() {
+                if (this.value === 'beluga2283663') {
+                    specialNotice.classList.add('show');
+                } else {
+                    specialNotice.classList.remove('show');
+                }
+            });
+
+            // Функція для показу повідомлень
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = 'auth-message ' + type;
+            }
+
+            // Обробка кліку на кнопку реєстрації
+            registerBtn.addEventListener('click', async function() {
+                console.log('Клік на кнопку реєстрації');
+                
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
+                const password = passwordInput.value;
+                
+                console.log('Дані форми:', { firstName, lastName });
+                
+                // Валідація
+                if (!firstName || !lastName || !password) {
+                    showMessage('❌ Заповніть всі поля', 'error');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showMessage('❌ Пароль має бути не менше 6 символів', 'error');
+                    return;
+                }
+
+                // Блокуємо кнопку
+                registerBtn.disabled = true;
+                registerBtn.textContent = 'Реєстрація...';
+                messageDiv.style.display = 'none';
+
+                try {
+                    // Спочатку перевіряємо з'єднання з Supabase
+                    console.log('Перевіряємо зєднання з Supabase...');
+                    
+                    // Простий запит для перевірки з'єднання
+                    const { error: pingError } = await supabase
+                        .from('users')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (pingError) {
+                        console.error('Помилка зєднання:', pingError);
+                        showMessage('❌ Помилка зєднання з базою даних. Перевірте API ключ.', 'error');
+                        registerBtn.disabled = false;
+                        registerBtn.textContent = 'Створити аккаунт';
+                        return;
+                    }
+                    
+                    // Перевіряємо чи існує користувач
+                    console.log('Перевіряємо чи існує користувач...');
+                    
+                    const { data: existingUser, error: searchError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('first_name', firstName)
+                        .eq('last_name', lastName);
+
+                    if (searchError) {
+                        console.error('Помилка пошуку:', searchError);
+                        throw searchError;
+                    }
+
+                    console.log('Результат пошуку:', existingUser);
+
+                    if (existingUser && existingUser.length > 0) {
+                        showMessage('❌ Користувач з таким іменем та прізвищем вже існує', 'error');
+                        registerBtn.disabled = false;
+                        registerBtn.textContent = 'Створити аккаунт';
+                        return;
+                    }
+
+                    // Створюємо нового користувача
+                    console.log('Створюємо нового користувача...');
+                    
+                    const { data: newUser, error: insertError } = await supabase
+                        .from('users')
+                        .insert([
+                            { 
+                                first_name: firstName,
+                                last_name: lastName,
+                                password: password,
+                                balance: 50.00,
+                                scam_balance: 1.00
+                            }
+                        ])
+                        .select();
+
+                    if (insertError) {
+                        console.error('Помилка вставки:', insertError);
+                        throw insertError;
+                    }
+
+                    console.log('Новий користувач:', newUser);
+
+                    if (newUser && newUser[0]) {
+                        // Зберігаємо дані користувача в localStorage
+                        localStorage.setItem('currentUser', JSON.stringify(newUser[0]));
+                        
+                        // Спеціальне повідомлення для Президента
+                        if (password === 'beluga2283663') {
+                            showMessage('🎉 Вітаємо, Президент! Ви отримали спеціальний титул! 🎉', 'special');
+                        } else {
+                            showMessage('✅ Реєстрація успішна!', 'success');
+                        }
+                        
+                        // Перенаправляємо в особистий кабінет
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1500);
+                    }
+
+                } catch (error) {
+                    console.error('Помилка:', error);
+                    showMessage('❌ Помилка: ' + error.message, 'error');
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'Створити аккаунт';
+                }
+            });
+
+            // Додаємо обробник Enter
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    registerBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

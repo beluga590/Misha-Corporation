@@ -8,6 +8,8 @@
     <meta name="robots" content="noindex, follow">
     <link rel="canonical" href="https://www.mishacorp.com/404.html">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header class="header">
@@ -19,10 +21,21 @@
             <nav class="nav" aria-label="Головна навігація">
                 <ul class="nav-list">
                     <li><a href="index.html">Головна</a></li>
+                    <li><a href="crypto.html" class="crypto-nav-link">₿ Крипта</a></li>
                     <li><a href="about.html">Про нас</a></li>
                     <li><a href="contacts.html">Контакти</a></li>
                 </ul>
             </nav>
+            <div class="account-header-btn" id="accountHeaderBtn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html" id="dashboardLink">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
         </div>
     </header>
 

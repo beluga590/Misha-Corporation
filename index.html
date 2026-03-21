@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Misha Corp - Головна</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header class="header">
@@ -21,6 +23,16 @@
                     <li><a href="contacts.html">Контакти</a></li>
                 </ul>
             </nav>
+            <div class="account-header-btn" id="accountHeaderBtn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html" id="dashboardLink">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -46,7 +58,7 @@
                         <p class="tool-description">Ви берете 100 грн, а віддаєте 1000 грн і пароль від свого Wi-Fi. Жодних прихованих комісій, тільки відкрите грабіжництво.</p>
                     </div>
                     <div class="tool-card">
-                        <h3 class="tool-title">Криптовалюта $SkamCoin</h3>
+                        <h3 class="tool-title">Криптовалюта $SCAM</h3>
                         <p class="tool-description">Валюта, яка забезпечена виключно чесним словом Михайла. Курс залежить від того, чи виспався сьогодні CEO.</p>
                     </div>
                 </div>
@@ -88,6 +100,47 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+
+<script src="script.js"></script>
+<script>
+// Проверка авторизации для кнопки Кабинет
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Скрипт загружен'); // Проверка что скрипт работает
+    
+    const accountBtn = document.getElementById('accountBtn');
+    const accountDropdown = document.getElementById('accountDropdown');
+    
+    console.log('Кнопка найдена:', accountBtn); // Проверка что кнопка есть
+    
+    if (accountBtn) {
+        accountBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Клик по кнопке Кабинет');
+            
+            // Простая проверка без Supabase для начала
+            const savedUser = localStorage.getItem('currentUser');
+            console.log('savedUser:', savedUser);
+            
+            if (savedUser) {
+                // Если есть пользователь в localStorage - идем на дашборд
+                console.log('Переход на dashboard.html');
+                window.location.href = 'dashboard.html';
+            } else {
+                // Если нет - показываем дропдаун
+                console.log('Показываем дропдаун');
+                if (accountDropdown) {
+                    accountDropdown.classList.toggle('show');
+                }
+            }
+        });
+    }
+    
+    document.addEventListener('click', function() {
+        if (accountDropdown) {
+            accountDropdown.classList.remove('show');
+        }
+    });
+});
+</script>
 </body>
 </html>

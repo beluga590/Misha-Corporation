@@ -4,28 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scam Coin ($SCAM) – Купити мем-коїн | Scam Corporation</title>
-    <meta name="description" content="Офіційна сторінка кріптовалюти $SCAM від Scam Corporation. Дізнайтеся курс, графік «Надія vs Реальність», перегляньть ТОП холдерів та придбайте монету, забезпечену чесним словом Михайла.">
-    <meta name="keywords" content="Scam Coin, криптовалюта, мем-коїн, купити Scam Coin, інвестиції, жартівлива крипта, Scam Corp, курс криптовалют">
+    <meta name="description" content="Офіційна сторінка кріптовалюти $SCAM від Scam Corporation.">
+    <meta name="keywords" content="Scam Coin, криптовалюта, мем-коїн">
     <meta name="author" content="Scam Corporation">
-    <meta property="og:title" content="Криптовалюта $SCAM – чесне слово гарантуємо!">
-    <meta property="og:description" content="Приєднуйтесь до фінансового екстриму з $SCAM. Курс залежить від настрою CEO. Встигніть втратити все!">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.scam-corp.com/crypto">
-    <meta property="og:image" content="https://www.scam-corp.com/images/scamcoin-og.jpg">
-    <meta property="og:site_name" content="Scam Corporation">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="$SCAM – Найчесніший мем-коїн">
-    <meta name="twitter:description" content="Графік олівцем, капіталізація на рівні 3 піц та огризка. Інвестуй у мрію!">
-    <meta name="twitter:image" content="https://www.scam-corp.com/images/scamcoin-twitter.jpg">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="canonical" href="https://www.scam-corp.com/crypto.html">
-    <script type="application/ld+json">
-
-    </script>
-    <script type="application/ld+json">
-   
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .scam-with-logo {
             display: inline-flex;
@@ -41,6 +27,161 @@
         }
         .stat-card .scam-with-logo img {
             height: 16px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: #111316;
+            border: 2px solid #e6b422;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            margin: 10% auto;
+            text-align: center;
+            position: relative;
+            animation: slideDown 0.3s ease;
+            box-shadow: 0 0 30px rgba(230, 180, 34, 0.3);
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content i {
+            font-size: 4rem;
+            color: #e6b422;
+            margin-bottom: 20px;
+        }
+        
+        .modal-content h2 {
+            color: #fff;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content p {
+            color: #9ca3af;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .modal-btn {
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+        
+        .modal-btn.primary {
+            background: #e6b422;
+            color: #0a0c0f;
+        }
+        
+        .modal-btn.primary:hover {
+            background: #ffd966;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(230, 180, 34, 0.4);
+        }
+        
+        .modal-btn.secondary {
+            background: transparent;
+            color: #e6b422;
+            border: 1px solid #e6b422;
+        }
+        
+        .modal-btn.secondary:hover {
+            background: rgba(230, 180, 34, 0.1);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: #e6b422;
+        }
+        
+        .buy-btn-protected {
+            cursor: pointer;
+        }
+
+        .wallet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-wallet-info {
+            background: #1e2126;
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: 1px solid #3f444e;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-wallet-info:hover {
+            border-color: #e6b422;
+            background: #2a2f36;
+        }
+
+        .user-wallet-name {
+            color: #e6b422;
+            font-weight: 600;
+        }
+
+        .user-wallet-balance {
+            background: #0a0c0f;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-weight: 700;
+        }
+
+        .dashboard-link {
+            text-decoration: none;
+        }
+
+        .dashboard-link:hover {
+            text-decoration: none;
         }
     </style>
 </head>
@@ -59,8 +200,34 @@
                     <li><a href="contacts.html">Контакти</a></li>
                 </ul>
             </nav>
+            <div class="account-header-btn" id="accountHeaderBtn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html" id="dashboardLink">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
         </div>
     </header>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+            <i class="fas fa-lock"></i>
+            <h2>Доступ до гаманця</h2>
+            <p>Для покупки, продажу та перегляду балансу $SCAM необхідно увійти в особистий кабінет</p>
+            <div class="modal-buttons">
+                <a href="login.html" class="modal-btn primary">Увійти</a>
+                <a href="register.html" class="modal-btn secondary">Реєстрація</a>
+            </div>
+            <p style="font-size: 0.8rem; margin-top: 20px; color: #6b7280;">
+                <i class="fas fa-laugh-wink"></i> Це безкоштовно, втрати грошей почнуться пізніше
+            </p>
+        </div>
+    </div>
 
     <main>
         <section class="page-header">
@@ -301,12 +468,25 @@
 
         <section class="crypto-wallet" aria-labelledby="wallet-heading">
             <div class="container">
-                <h2 id="wallet-heading" class="section-title">
-                    <span class="scam-with-logo">
-                        Ваш криптогаманець
-                        <img src="лого.png" alt="лого">
-                    </span>
-                </h2>
+                <div class="wallet-header">
+                    <h2 id="wallet-heading" class="section-title">
+                        <span class="scam-with-logo">
+                            Ваш криптогаманець
+                            <img src="лого.png" alt="лого">
+                        </span>
+                    </h2>
+                    
+                    <div id="userWalletInfo" style="display: none;">
+                        <a href="dashboard.html" class="dashboard-link" id="userWalletLink">
+                            <div class="user-wallet-info">
+                                <span class="user-wallet-name" id="walletUserName"></span>
+                                <span class="user-wallet-balance" id="walletUserBalance">0 $SCAM</span>
+                                <i class="fas fa-arrow-right" style="color: #e6b422;"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                
                 <div class="wallet-container">
                     <article class="balance-card">
                         <h3 class="balance-label">
@@ -336,7 +516,7 @@
                         <div class="transaction-controls">
                             <label for="buyAmount" class="visually-hidden">Сума в грн</label>
                             <input type="number" id="buyAmount" class="transaction-input" placeholder="Сума в грн" min="1" value="100">
-                            <button class="transaction-btn" id="buyBtn" aria-label="Купити Scam Coin">Купити</button>
+                            <button class="transaction-btn buy-btn-protected" id="buyBtn" aria-label="Купити Scam Coin">Купити</button>
                         </div>
                         <div class="transaction-result" id="buyResult" aria-live="polite"></div>
                     </div>
@@ -353,7 +533,7 @@
                         <div class="transaction-controls">
                             <label for="sellAmount" class="visually-hidden">Кількість Scam Coin</label>
                             <input type="number" id="sellAmount" class="transaction-input" placeholder="Кількість Scam Coin" min="1" value="1">
-                            <button class="transaction-btn" id="sellBtn" aria-label="Продати Scam Coin">Продати</button>
+                            <button class="transaction-btn buy-btn-protected" id="sellBtn" aria-label="Продати Scam Coin">Продати</button>
                         </div>
                         <div class="transaction-result" id="sellResult" aria-live="polite"></div>
                     </div>
@@ -371,64 +551,32 @@
             </div>
         </section>
 
-        <section class="crypto-leaderboard" aria-labelledby="leaderboard-heading">
-            <div class="container">
-                <h2 id="leaderboard-heading" class="section-title">
-                    <span class="scam-with-logo">
-                        ТОП холдерів $SCAM
-                        <img src="лого.png" alt="лого">
-                    </span>
-                </h2>
-                <div class="leaderboard-container">
-                    <table class="leaderboard-table">
-                        <caption class="visually-hidden">Список найбільших власників Scam Coin</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Ім'я</th>
-                                <th scope="col">Баланс</th>
-                                <th scope="col">Статус</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboardBody">
-                            <tr>
-                                <th scope="row">1</th>
-                                <td>Михайло (CEO)</td>
-                                <td>
-                                    <span class="scam-with-logo">
-                                        ∞
-                                        <img src="лого.png" alt="лого">
-                                    </span>
-                                </td>
-                                <td>Друкує гроші</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">2</th>
-                                <td>Кіт Мурка</td>
-                                <td>
-                                    <span class="scam-with-logo">
-                                        1,000,000
-                                        <img src="лого.png" alt="лого">
-                                    </span>
-                                </td>
-                                <td>Надрукувала лапкою</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">3</th>
-                                <td>Степан «Щасливчик»</td>
-                                <td id="stepanBalance">
-                                    <span class="scam-with-logo">
-                                        0
-                                        <img src="лого.png" alt="лого">
-                                    </span>
-                                </td>
-                                <td>Продав квартиру</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+       <section class="crypto-leaderboard" aria-labelledby="leaderboard-heading">
+    <div class="container">
+        <h2 id="leaderboard-heading" class="section-title">
+            <span class="scam-with-logo">
+                ТОП холдерів $SCAM
+                <img src="лого.png" alt="лого">
+            </span>
+        </h2>
+        <div class="leaderboard-container">
+            <table class="leaderboard-table">
+                <caption class="visually-hidden">Список найбільших власників Scam Coin</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Ім'я</th>
+                        <th scope="col">Баланс</th>
+                        <th scope="col">Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <!-- Таблица будет заполняться через JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
     </main>
 
     <footer class="footer">
@@ -454,7 +602,7 @@
         </div>
     </footer>
 
-    <script src="crypto.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="crypto.js"></script>
 </body>
 </html>
