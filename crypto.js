@@ -1,12 +1,13 @@
 // crypto.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Supabase конфігурація
+    // Supabase конфигурация
     const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
     
     let supabase = null;
     let currentUser = null;
     let currentPrice = 0.05;
+    let totalSupply = 0; // Общее количество монет в обращении
     
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -15,19 +16,53 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Ошибка инициализации Supabase:', error);
     }
 
-    // Получение количества держателей SCAM и расчет цены
+    // Функция для получения общего количества монет у всех пользователей
+    async function getTotalScamSupply() {
+        try {
+            if (!supabase) return 0;
+            
+            const { data, error } = await supabase
+                .from('users')
+                .select('scam_balance');
+            
+            if (error) {
+                console.error('Ошибка получения балансов:', error);
+                return 0;
+            }
+            
+            // Суммируем все балансы
+            const total = data.reduce((sum, user) => {
+                return sum + (parseFloat(user.scam_balance) || 0);
+            }, 0);
+            
+            return total;
+        } catch (error) {
+            console.error('Ошибка расчета общего предложения:', error);
+            return 0;
+        }
+    }
+    
+    // Расчет цены на основе общего количества монет (чем больше монет, тем дороже)
+    // Формула: базовая цена 0.05 + логарифмический рост от общего количества монет
     async function calculatePrice() {
         try {
             if (!supabase) return 0.05;
             
-            const { count, error } = await supabase
-                .from('users')
-                .select('*', { count: 'exact', head: true })
-                .gt('scam_balance', 0);
-                
-            const holders = error ? 1 : (count || 1);
-            let price = 0.05 * Math.pow(1.08, Math.min(holders - 1, 60));
-            return Math.min(5.00, Math.round(price * 100) / 100);
+            // Получаем общее количество монет в обращении
+            totalSupply = await getTotalScamSupply();
+            
+            if (totalSupply === 0) return 0.05;
+            
+            // Формула цены: чем больше монет у всех, тем выше цена
+            // Используем логарифмическую шкалу для плавного роста
+            // Максимальная цена ограничена 5.00
+            let price = 0.05 * Math.pow(1.005, totalSupply / 100);
+            
+            // Ограничиваем максимальную цену 5.00
+            price = Math.min(5.00, price);
+            
+            // Округляем до 4 знаков для точности
+            return Math.round(price * 10000) / 10000;
         } catch (error) {
             console.error('Ошибка расчета цены:', error);
             return 0.05;
@@ -96,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Покупка SCAM (теперь ввод в USD)
+    // Покупка SCAM (ввод в USD)
     async function buyScam() {
         const usdAmountInput = document.getElementById('buyAmount');
         if (!usdAmountInput) return { success: false, message: 'Поле ввода не найдено' };
@@ -131,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return { success: false, message: errorMsg };
         }
         
-        const finalCost = amountToReceive * currentPrice; // Списываем только за целые монеты
+        const finalCost = amountToReceive * currentPrice;
         const newUsdBalance = usdBalance - finalCost;
         const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + amountToReceive;
         
@@ -158,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     amount: amountToReceive,
                     currency: 'SCAM',
                     amount_usd: finalCost,
-                    details: `Витрачено $${finalCost.toFixed(2)} на покупку ${amountToReceive} $SCAM (ціна: $${currentPrice.toFixed(2)})`
+                    details: `Витрачено $${finalCost.toFixed(2)} на покупку ${amountToReceive} $SCAM (ціна: $${currentPrice.toFixed(4)})`
                 }]);
             
             // Обновляем локальные данные
@@ -167,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             await updateUserBalance();
-            await updateAllStats();
+            await updateAllStats(); // Обновит цену на основе нового общего предложения
             await updateLeaderboard();
             
             usdAmountInput.value = '';
@@ -188,16 +223,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const amountInput = document.getElementById('sellAmount');
         if (!amountInput) return { success: false, message: 'Поле ввода не найдено' };
         
-        // Получаем строковое значение из поля
         const inputValue = amountInput.value.trim();
         
-        // Проверка: если поле пустое
         if (inputValue === '') {
             showTransactionResult('sellResult', '❌ Введіть кількість монет', 'error');
             return { success: false, message: 'Пустое поле' };
         }
         
-        // Проверка, что введено целое число (без запятых, точек и дробной части)
         const integerRegex = /^\d+$/;
         if (!integerRegex.test(inputValue)) {
             showTransactionResult('sellResult', '❌ Можна продавати тільки цілу кількість монет! (1, 2, 3...)', 'error');
@@ -238,7 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (updateError) throw updateError;
             
-            // Записываем транзакцию
             await supabase
                 .from('transactions')
                 .insert([{
@@ -249,16 +280,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     amount: amount,
                     currency: 'SCAM',
                     amount_usd: usdAmount,
-                    details: `Продаж ${amount} $SCAM за $${usdAmount.toFixed(2)} (ціна: $${currentPrice.toFixed(2)})`
+                    details: `Продаж ${amount} $SCAM за $${usdAmount.toFixed(2)} (ціна: $${currentPrice.toFixed(4)})`
                 }]);
             
-            // Обновляем локальные данные
             currentUser.balance = newUsdBalance;
             currentUser.scam_balance = newScamBalance;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             await updateUserBalance();
-            await updateAllStats();
+            await updateAllStats(); // Обновит цену на основе нового общего предложения
             await updateLeaderboard();
             
             amountInput.value = '';
@@ -274,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Вспомогательная функция для отображения результатов транзакций
     function showTransactionResult(elementId, message, type) {
         const resultElement = document.getElementById(elementId);
         if (resultElement) {
@@ -287,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Обновление таблицы лидеров (ТОП-10 строго из базы данных)
+    // Обновление таблицы лидеров (ТОП-10 по количеству монет)
     async function updateLeaderboard() {
         if (!supabase) {
             console.error('Supabase не инициализирован');
@@ -295,7 +324,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Убрали 'username', запрашиваем только те колонки, которые точно есть в БД
             const { data, error } = await supabase
                 .from('users')
                 .select('first_name, last_name, scam_balance')
@@ -310,14 +338,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const tbody = document.getElementById('leaderboardBody');
             if (!tbody) return;
             
-            tbody.innerHTML = ''; // Очищаем таблицу
+            tbody.innerHTML = '';
             
             for (let i = 0; i < 10; i++) {
                 const user = data[i];
                 const row = document.createElement('tr');
                 
                 if (user && user.scam_balance > 0) {
-                    // Склеиваем имя и фамилию
                     const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                     const balance = Math.floor(user.scam_balance).toLocaleString();
                     const status = user.scam_balance >= 1000000 ? 'Олігарх' : 'Інвестор';
@@ -325,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.innerHTML = `
                         <th scope="row">${i + 1}</th>
                         <td>${escapeHtml(name)}</td>
-                         <td>
+                        <td>
                             <span class="scam-with-logo">
                                 ${balance}
                                 <img src="лого.png" alt="лого">
@@ -334,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${status}</td>
                     `;
                 } else {
-                    // Пустые строки для недостающих игроков
                     row.innerHTML = `
                         <th scope="row">${i + 1}</th>
                         <td>---</td>
@@ -345,14 +371,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 tbody.appendChild(row);
             }
             
-            console.log('Лидерборд обновлен, найдено пользователей с монетами:', data.filter(u => u.scam_balance > 0).length);
+            // Добавляем информацию об общем количестве монет в обращении
+            const totalSupplyElement = document.getElementById('totalSupply');
+            if (totalSupplyElement && totalSupply > 0) {
+                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${Math.floor(totalSupply).toLocaleString()} <img src="лого.png" alt="лого"></span>`;
+            }
+            
+            console.log('Лидерборд обновлен, всего монет в обращении:', Math.floor(totalSupply));
             
         } catch (error) {
             console.error('Ошибка обновления лидерборда:', error);
         }
     }
     
-    // Простая функция для экранирования HTML
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -366,28 +397,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обновление статистики и графиков
     async function updateAllStats() {
         try {
+            // Рассчитываем цену на основе общего количества монет
             currentPrice = await calculatePrice();
             
             const priceElement = document.getElementById('currentPrice');
             if (priceElement) {
-                priceElement.innerHTML = `<span class="scam-with-logo">$${currentPrice.toFixed(2)} <img src="лого.png" alt="лого"></span>`;
+                priceElement.innerHTML = `<span class="scam-with-logo">$${currentPrice.toFixed(4)} <img src="лого.png" alt="лого"></span>`;
             }
             
+            // Обновляем информацию об общем количестве монет
+            const totalSupplyElement = document.getElementById('totalSupply');
+            if (totalSupplyElement && totalSupply > 0) {
+                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${Math.floor(totalSupply).toLocaleString()} <img src="лого.png" alt="лого"></span>`;
+            }
+            
+            // Расчет рыночной капитализации
             const marketCapElement = document.getElementById('marketCap');
             if (marketCapElement) {
-                const { count, error } = await supabase
-                    .from('users')
-                    .select('*', { count: 'exact', head: true })
-                    .gt('scam_balance', 0);
-                const holders = (error || !count) ? 1 : count;
-                const marketCap = (currentPrice * holders * 100).toFixed(0);
-                marketCapElement.innerHTML = `<span class="scam-with-logo">$${marketCap} <img src="лого.png" alt="лого"></span>`;
+                const marketCap = currentPrice * totalSupply;
+                marketCapElement.innerHTML = `<span class="scam-with-logo">$${Math.floor(marketCap).toLocaleString()} <img src="лого.png" alt="лого"></span>`;
             }
             
+            // Объем торгов (примерный)
             const volumeElement = document.getElementById('volume');
             if (volumeElement) {
                 const volume = Math.floor(currentPrice * 50000);
-                volumeElement.innerHTML = `<span class="scam-with-logo">${volume} $SCAM <img src="лого.png" alt="лого"></span>`;
+                volumeElement.innerHTML = `<span class="scam-with-logo">${volume.toLocaleString()} $SCAM <img src="лого.png" alt="лого"></span>`;
             }
             
             const chartData = {
@@ -482,7 +517,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (period.data && period.data.length > 0) {
                 const maxElement = document.getElementById(period.maxId);
                 if (maxElement) {
-                    const maxValue = Math.max(...period.data).toFixed(2);
+                    const maxValue = Math.max(...period.data).toFixed(4);
                     maxElement.textContent = maxValue;
                 }
                 
@@ -538,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: { 
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
-                        ticks: { color: '#9ca3af', callback: function(value) { return '$' + value; } }
+                        ticks: { color: '#9ca3af', callback: function(value) { return '$' + value.toFixed(4); } }
                     },
                     x: { 
                         display: canvasId === 'mainChart',
@@ -624,7 +659,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Обработчики кнопок периодов
     function setupPeriodButtons() {
         const periodBtns = document.querySelectorAll('.chart-btn');
         const periodNames = {
@@ -669,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const lastPrice = newData[newData.length - 1];
                 const priceElement = document.getElementById('currentPrice');
                 if (priceElement) {
-                    priceElement.innerHTML = `<span class="scam-with-logo">$${lastPrice.toFixed(2)} <img src="лого.png" alt="лого"></span>`;
+                    priceElement.innerHTML = `<span class="scam-with-logo">$${lastPrice.toFixed(4)} <img src="лого.png" alt="лого"></span>`;
                 }
             });
         });
@@ -679,12 +713,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function init() {
         await checkAuth();
         await updateAllStats();
-        await updateLeaderboard(); // Обновляем лидерборд при загрузке
+        await updateLeaderboard();
         
-        // Настраиваем кнопки периодов
         setupPeriodButtons();
         
-        // Обработчики кнопок покупки/продажи
         const buyBtn = document.getElementById('buyBtn');
         const sellBtn = document.getElementById('sellBtn');
         
@@ -702,7 +734,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Модальное окно
         const modal = document.getElementById('authModal');
         const closeModal = document.getElementById('closeModal');
         if (closeModal) closeModal.addEventListener('click', hideAuthModal);
@@ -710,7 +741,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.target === modal) hideAuthModal();
         });
         
-        // Кнопка Кабинет
         const accountBtn = document.getElementById('accountBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         
@@ -734,13 +764,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Автообновление
         setInterval(async () => {
             await updateAllStats();
             await updateLeaderboard();
         }, 30000);
         
-        // Жарты
         const jokeBtn = document.getElementById('cryptoJokeBtn');
         const jokeText = document.getElementById('cryptoJoke');
         const jokes = [
@@ -765,6 +793,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Запуск
     init();
 });
