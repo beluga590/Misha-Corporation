@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPrice = 0.05;
     let totalSupply = 0;
     
+    // Массив для хранения истории цен (последние 30 дней)
+    let priceHistory = [];
+    
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('Supabase инициализирован');
@@ -16,7 +19,54 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Ошибка инициализации Supabase:', error);
     }
 
-    // Функция для получения общего количества монет у всех пользователей
+    // Загрузка истории цен из localStorage
+    function loadPriceHistory() {
+        const saved = localStorage.getItem('scam_price_history');
+        if (saved) {
+            priceHistory = JSON.parse(saved);
+        } else {
+            // Инициализация истории за последние 30 дней
+            priceHistory = [];
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                priceHistory.push({
+                    timestamp: date.getTime(),
+                    price: 0.05,
+                    date: date.toLocaleDateString(),
+                    time: date.toLocaleTimeString()
+                });
+            }
+            savePriceHistory();
+        }
+    }
+    
+    // Сохранение истории цен
+    function savePriceHistory() {
+        localStorage.setItem('scam_price_history', JSON.stringify(priceHistory));
+    }
+    
+    // Добавление новой цены в историю
+    function addPriceToHistory(price) {
+        const now = new Date();
+        const newEntry = {
+            timestamp: now.getTime(),
+            price: price,
+            date: now.toLocaleDateString(),
+            time: now.toLocaleTimeString()
+        };
+        
+        priceHistory.push(newEntry);
+        
+        // Оставляем только последние 30 дней (30 записей)
+        if (priceHistory.length > 30) {
+            priceHistory = priceHistory.slice(-30);
+        }
+        
+        savePriceHistory();
+    }
+    
+    // Функция для получения общего количества монет
     async function getTotalScamSupply() {
         try {
             if (!supabase) return 0;
@@ -41,18 +91,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Расчет цены
+    // Расчет цены: 1 SCAM = +0.001 к курсу
     async function calculatePrice() {
         try {
             if (!supabase) return 0.05;
             
             totalSupply = await getTotalScamSupply();
-            let price = 0.05 + (totalSupply * 0.01);
+            // Формула: 1 монета = +0.001 к курсу
+            let price = 0.05 + (totalSupply * 0.001);
             
-            return Math.round(price * 100000000) / 100000000;
+            return Math.round(price * 1000) / 1000; // 3 знака после запятой
         } catch (error) {
             console.error('Ошибка расчета цены:', error);
             return 0.05;
+        }
+    }
+    
+    // Функция для обновления баланса на странице крипты
+    async function updateCryptoPageBalance() {
+        if (!currentUser || !supabase) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('scam_balance, balance, first_name, last_name, email')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (error) throw error;
+            
+            if (data) {
+                currentUser = { ...currentUser, ...data };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Обновляем USD баланс (как в dashboard)
+                const usdElem = document.getElementById('usdBalance');
+                if (usdElem) {
+                    usdElem.textContent = '$' + (data.balance || 0).toFixed(2);
+                }
+                
+                // Обновляем SCAM баланс (как в dashboard)
+                const scamElem = document.getElementById('scamBalance');
+                if (scamElem) {
+                    scamElem.innerHTML = `${(data.scam_balance || 0).toFixed(3)} <small>SCAM</small>`;
+                }
+                
+                // Обновляем старые элементы для обратной совместимости
+                const balanceElement = document.getElementById('userBalance');
+                if (balanceElement) {
+                    balanceElement.innerHTML = `<span class="scam-with-logo">${(data.scam_balance || 0).toFixed(3)} <img src="лого.png" alt="лого"></span>`;
+                }
+                
+                const balanceUsdElement = document.getElementById('userBalanceUSD');
+                if (balanceUsdElement) {
+                    balanceUsdElement.textContent = '$' + ((data.balance || 0).toFixed(2));
+                }
+                
+                // Обновляем имя пользователя в боковой панели
+                const walletUserName = document.getElementById('walletUserName');
+                if (walletUserName) {
+                    walletUserName.textContent = data.first_name;
+                }
+                
+                // Обновляем SCAM баланс в боковой панели
+                const walletUserBalance = document.getElementById('walletUserBalance');
+                if (walletUserBalance) {
+                    walletUserBalance.textContent = (data.scam_balance || 0).toFixed(3) + ' $SCAM';
+                }
+                
+                // Обновляем USD баланс в боковой панели
+                const walletUserBalanceUSD = document.getElementById('walletUserBalanceUSD');
+                if (walletUserBalanceUSD) {
+                    walletUserBalanceUSD.textContent = '$' + ((data.balance || 0).toFixed(2));
+                }
+                
+                // Обновляем кнопку в хедере
+                const accountBtnText = document.getElementById('accountBtnText');
+                if (accountBtnText) {
+                    accountBtnText.textContent = data.first_name || 'Кабінет';
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки баланса:', err);
         }
     }
     
@@ -70,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Рассчитываем сколько целых монет можно купить
         const wholeScamAmount = Math.floor(usdAmount / currentPrice);
         const fractionalPart = (usdAmount / currentPrice) - wholeScamAmount;
         
@@ -78,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="preview-box">
                 <div class="preview-label">📊 Попередній перегляд:</div>
                 <div class="preview-amount">
-                    Ви отримаєте: <span>${wholeScamAmount.toFixed(8)} $SCAM</span>
+                    Ви отримаєте: <span>${wholeScamAmount.toFixed(3)} $SCAM</span>
                 </div>
         `;
         
@@ -86,17 +205,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const remainingUSD = fractionalPart * currentPrice;
             previewHtml += `
                 <div class="preview-warning" style="color: #ffaa44; margin-top: 5px;">
-                    ⚠️ На ${fractionalPart.toFixed(8)} $SCAM не вистачає коштів (потрібно ще $${(currentPrice - remainingUSD).toFixed(8)})
+                    ⚠️ На ${fractionalPart.toFixed(3)} $SCAM не вистачає коштів (потрібно ще $${(currentPrice - remainingUSD).toFixed(3)})
                 </div>
                 <div class="preview-refund" style="color: #a8e6cf; margin-top: 5px;">
-                    💰 ${remainingUSD.toFixed(8)} USD буде повернено на баланс
+                    💰 ${remainingUSD.toFixed(3)} USD буде повернено на баланс
                 </div>
             `;
         }
         
         previewHtml += `
                 <div class="preview-rate" style="margin-top: 5px;">
-                    За курсом: 1 $SCAM = $${currentPrice.toFixed(8)}
+                    За курсом: 1 $SCAM = $${currentPrice.toFixed(3)}
                 </div>
             </div>
         `;
@@ -124,76 +243,45 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="preview-box">
                 <div class="preview-label">📊 Попередній перегляд:</div>
                 <div class="preview-amount">
-                    Ви отримаєте: <span>$${usdAmount.toFixed(8)} USD</span>
+                    Ви отримаєте: <span>$${usdAmount.toFixed(3)} USD</span>
                 </div>
                 <div class="preview-rate">
-                    За курсом: 1 $SCAM = $${currentPrice.toFixed(8)}
+                    За курсом: 1 $SCAM = $${currentPrice.toFixed(3)}
                 </div>
             </div>
         `;
     }
     
-    function generateChartData(currentDbPrice, points, volatility) {
-        const data = [];
-        let price = Math.max(0.00000001, currentDbPrice * (1 - (volatility * 2)));
-        
-        for (let i = 0; i < points - 1; i++) {
-            const change = (Math.random() - 0.5) * volatility * price;
-            price = Math.max(0.00000001, price + change);
-            
-            const r = Math.random();
-            if (r > 0.97) price *= 1.1;
-            if (r < 0.03) price *= 0.9;
-            
-            data.push(price);
-        }
-        
-        data.push(currentDbPrice);
-        return data;
-    }
-    
-    async function updateUserBalance() {
-        if (!currentUser || !supabase) return;
-        
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('scam_balance, balance, first_name, last_name, email')
-                .eq('id', currentUser.id)
-                .single();
-            
-            if (error) throw error;
-            
-            if (data) {
-                currentUser = { ...currentUser, ...data };
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
-                const balanceElement = document.getElementById('userBalance');
-                if (balanceElement) {
-                    balanceElement.innerHTML = `<span class="scam-with-logo">${(data.scam_balance || 0).toFixed(8)} <img src="лого.png" alt="лого"></span>`;
-                }
-                
-                const balanceUsdElement = document.getElementById('userBalanceUSD');
-                if (balanceUsdElement) {
-                    balanceUsdElement.textContent = '$' + ((data.scam_balance || 0) * currentPrice).toFixed(2);
-                }
-                
-                const walletUserName = document.getElementById('walletUserName');
-                if (walletUserName) {
-                    walletUserName.textContent = data.first_name;
-                }
-                
-                const walletUserBalance = document.getElementById('walletUserBalance');
-                if (walletUserBalance) {
-                    walletUserBalance.textContent = (data.scam_balance || 0).toFixed(8) + ' $SCAM';
-                }
+    // Генерация данных для графика с историей
+    function generateChartDataWithHistory(points) {
+        if (priceHistory.length >= points) {
+            // Берем последние points записей из истории
+            const lastPoints = priceHistory.slice(-points);
+            return lastPoints.map(entry => entry.price);
+        } else {
+            // Если истории недостаточно, генерируем случайные данные
+            const data = [];
+            let price = currentPrice * (1 - 0.2);
+            for (let i = 0; i < points; i++) {
+                const change = (Math.random() - 0.5) * 0.05 * price;
+                price = Math.max(0.01, price + change);
+                data.push(Math.round(price * 1000) / 1000);
             }
-        } catch (error) {
-            console.error('Ошибка обновления баланса:', error);
+            return data;
         }
     }
     
-    // Покупка SCAM - с возвратом остатка
+    // Получение меток времени для графика
+    function getChartLabels(points) {
+        if (priceHistory.length >= points) {
+            const lastPoints = priceHistory.slice(-points);
+            return lastPoints.map(entry => `${entry.date}\n${entry.time}`);
+        } else {
+            return Array(points).fill('');
+        }
+    }
+    
+    // Покупка SCAM
     async function buyScam() {
         const usdAmountInput = document.getElementById('buyAmount');
         if (!usdAmountInput) return { success: false, message: 'Поле ввода не найдено' };
@@ -217,26 +305,21 @@ document.addEventListener('DOMContentLoaded', function() {
             return { success: false, message: errorMsg };
         }
         
-        // Рассчитываем сколько ЦЕЛЫХ монет можно купить
         const wholeScamAmount = Math.floor(usdToSpend / currentPrice);
         
         if (wholeScamAmount === 0) {
-            // Если не хватает даже на 1 целую монету
-            const errorMsg = `❌ Недостатньо коштів для покупки 1 $SCAM. Мінімальна сума: $${currentPrice.toFixed(8)}`;
+            const errorMsg = `❌ Недостатньо коштів для покупки 1 $SCAM. Мінімальна сума: $${currentPrice.toFixed(3)}`;
             showTransactionResult('buyResult', errorMsg, 'error');
             return { success: false, message: errorMsg };
         }
         
-        // Стоимость целых монет
         const costForWhole = wholeScamAmount * currentPrice;
-        // Остаток, который вернется на баланс
         const remainingUSD = usdToSpend - costForWhole;
         
-        const newUsdBalance = usdBalance - costForWhole; // Списываем только за целые монеты
+        const newUsdBalance = usdBalance - costForWhole;
         const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + wholeScamAmount;
         
         try {
-            // Обновляем баланс пользователя
             const { error: updateError } = await supabase
                 .from('users')
                 .update({
@@ -247,11 +330,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (updateError) throw updateError;
             
-            // Записываем транзакцию
-            let transactionDetails = `Витрачено $${costForWhole.toFixed(8)} на покупку ${wholeScamAmount.toFixed(8)} $SCAM (ціна: $${currentPrice.toFixed(8)})`;
+            let transactionDetails = `Витрачено $${costForWhole.toFixed(3)} на покупку ${wholeScamAmount.toFixed(3)} $SCAM (ціна: $${currentPrice.toFixed(3)})`;
             
             if (remainingUSD > 0) {
-                transactionDetails += `. Повернено на баланс: $${remainingUSD.toFixed(8)} USD (не вистачило на цілу монету)`;
+                transactionDetails += `. Повернено на баланс: $${remainingUSD.toFixed(3)} USD (не вистачило на цілу монету)`;
             }
             
             await supabase
@@ -267,21 +349,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     details: transactionDetails
                 }]);
             
-            // Обновляем локальные данные
             currentUser.balance = newUsdBalance;
             currentUser.scam_balance = newScamBalance;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            await updateUserBalance();
+            await updateCryptoPageBalance();
             await updateAllStats();
             await updateLeaderboard();
             
             usdAmountInput.value = '';
             updateBuyPreview();
             
-            let successMsg = `✅ Успішно! Ви купили ${wholeScamAmount.toFixed(8)} $SCAM за $${costForWhole.toFixed(8)}`;
+            let successMsg = `✅ Успішно! Ви купили ${wholeScamAmount.toFixed(3)} $SCAM за $${costForWhole.toFixed(3)}`;
             if (remainingUSD > 0) {
-                successMsg += `\n💰 Повернено на баланс: $${remainingUSD.toFixed(8)} USD (не вистачило на цілу монету)`;
+                successMsg += `\n💰 Повернено на баланс: $${remainingUSD.toFixed(3)} USD`;
             }
             showTransactionResult('buyResult', successMsg, 'success');
             
@@ -308,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const amount = parseFloat(inputValue);
         
         if (isNaN(amount) || amount <= 0) {
-            showTransactionResult('sellResult', '❌ Введіть додатнє число (можна дробове)', 'error');
+            showTransactionResult('sellResult', '❌ Введіть додатнє число', 'error');
             return { success: false, message: 'Неверное значение' };
         }
         
@@ -319,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const scamBalance = parseFloat(currentUser.scam_balance) || 0;
         if (amount > scamBalance) {
-            const errorMsg = `💰 Недостатньо $SCAM. Ваш баланс: ${scamBalance.toFixed(8)} $SCAM`;
+            const errorMsg = `💰 Недостатньо $SCAM. Ваш баланс: ${scamBalance.toFixed(3)} $SCAM`;
             showTransactionResult('sellResult', errorMsg, 'error');
             return { success: false, message: errorMsg };
         }
@@ -349,21 +430,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     amount: amount,
                     currency: 'SCAM',
                     amount_usd: usdAmount,
-                    details: `Продаж ${amount.toFixed(8)} $SCAM за $${usdAmount.toFixed(8)} (ціна: $${currentPrice.toFixed(8)})`
+                    details: `Продаж ${amount.toFixed(3)} $SCAM за $${usdAmount.toFixed(3)} (ціна: $${currentPrice.toFixed(3)})`
                 }]);
             
             currentUser.balance = newUsdBalance;
             currentUser.scam_balance = newScamBalance;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            await updateUserBalance();
+            await updateCryptoPageBalance();
             await updateAllStats();
             await updateLeaderboard();
             
             amountInput.value = '';
             updateSellPreview();
             
-            const successMsg = `✅ Успішно! Ви продали ${amount.toFixed(8)} $SCAM за $${usdAmount.toFixed(8)}`;
+            const successMsg = `✅ Успішно! Ви продали ${amount.toFixed(3)} $SCAM за $${usdAmount.toFixed(3)}`;
             showTransactionResult('sellResult', successMsg, 'success');
             
             return { success: true, message: successMsg };
@@ -386,6 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Обновление таблицы лидеров с разными статусами для каждого места
     async function updateLeaderboard() {
         if (!supabase) return;
         
@@ -403,17 +485,31 @@ document.addEventListener('DOMContentLoaded', function() {
             
             tbody.innerHTML = '';
             
+            // Статусы для каждого места
+            const statuses = [
+                { name: '👑 Крипто-Король', color: '#ffd700' },
+                { name: '💎 Платиновий Інвестор', color: '#e5e4e2' },
+                { name: '🥉 Бронзовий Магнат', color: '#cd7f32' },
+                { name: '📈 Висхідна Зірка', color: '#4ecdc4' },
+                { name: '⚡ Енерджайзер', color: '#95e77e' },
+                { name: '🎯 Мисливець за SCAM', color: '#ff9f4a' },
+                { name: '🦊 Хитрий Лис', color: '#ff6b6b' },
+                { name: '🐧 Пінгвін-Холдер', color: '#6c5ce7' },
+                { name: '🌟 Новачок', color: '#a8e6cf' },
+                { name: '🎲 Щасливчик', color: '#fd79a8' }
+            ];
+            
             for (let i = 0; i < 10; i++) {
                 const user = data[i];
                 const row = document.createElement('tr');
+                const status = statuses[i];
                 
                 if (user && user.scam_balance > 0) {
                     const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-                    const balance = user.scam_balance.toFixed(8);
-                    const status = user.scam_balance >= 1000000 ? 'Олігарх' : 'Інвестор';
+                    const balance = user.scam_balance.toFixed(3);
                     
                     row.innerHTML = `
-                        <th scope="row">${i + 1}</th>
+                        <th scope="row" style="font-weight: bold;">${i + 1}</th>
                         <td>${escapeHtml(name)}</td>
                         <td>
                             <span class="scam-with-logo">
@@ -421,14 +517,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <img src="лого.png" alt="лого">
                             </span>
                         </td>
-                        <td>${status}</td>
+                        <td style="color: ${status.color}; font-weight: bold;">${status.name}</td>
                     `;
                 } else {
                     row.innerHTML = `
-                        <th scope="row">${i + 1}</th>
+                        <th scope="row" style="font-weight: bold;">${i + 1}</th>
                         <td>---</td>
                         <td>---</td>
-                        <td>---</td>
+                        <td style="color: #6b7280;">${status.name} (вакантно)</td>
                     `;
                 }
                 tbody.appendChild(row);
@@ -436,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const totalSupplyElement = document.getElementById('totalSupply');
             if (totalSupplyElement && totalSupply > 0) {
-                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${totalSupply.toFixed(8)} <img src="лого.png" alt="лого"></span>`;
+                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${totalSupply.toFixed(3)} <img src="лого.png" alt="лого"></span>`;
             }
             
         } catch (error) {
@@ -454,18 +550,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Обновление статистики и графиков
     async function updateAllStats() {
         try {
+            const oldPrice = currentPrice;
             currentPrice = await calculatePrice();
+            
+            // Добавляем новую цену в историю, если она изменилась
+            if (oldPrice !== currentPrice) {
+                addPriceToHistory(currentPrice);
+            }
             
             const priceElement = document.getElementById('currentPrice');
             if (priceElement) {
-                priceElement.innerHTML = `<span class="scam-with-logo">$${currentPrice.toFixed(8)} <img src="лого.png" alt="лого"></span>`;
+                priceElement.innerHTML = `<span class="scam-with-logo">$${currentPrice.toFixed(3)} <img src="лого.png" alt="лого"></span>`;
             }
             
             const totalSupplyElement = document.getElementById('totalSupply');
             if (totalSupplyElement && totalSupply > 0) {
-                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${totalSupply.toFixed(8)} <img src="лого.png" alt="лого"></span>`;
+                totalSupplyElement.innerHTML = `<span class="scam-with-logo">${totalSupply.toFixed(3)} <img src="лого.png" alt="лого"></span>`;
             }
             
             const marketCapElement = document.getElementById('marketCap');
@@ -480,22 +583,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 volumeElement.innerHTML = `<span class="scam-with-logo">${volume.toFixed(2)} $SCAM <img src="лого.png" alt="лого"></span>`;
             }
             
-            const chartData = {
-                '1h': generateChartData(currentPrice, 60, 0.05),
-                '6h': generateChartData(currentPrice, 60, 0.08),
-                '12h': generateChartData(currentPrice, 60, 0.10),
-                '24h': generateChartData(currentPrice, 60, 0.12),
-                '7d': generateChartData(currentPrice, 60, 0.15),
-                '30d': generateChartData(currentPrice, 60, 0.20)
-            };
-            
-            updateAllCharts(chartData);
+            // Обновляем график с историческими данными
+            updateMainChartWithHistory();
             
             updateBuyPreview();
             updateSellPreview();
             
             if (currentUser) {
-                await updateUserBalance();
+                await updateCryptoPageBalance();
             }
             
         } catch (error) {
@@ -503,47 +598,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    let charts = {};
-    
-    function updateAllCharts(chartData) {
-        if (charts.mainChart && chartData['24h']) {
-            charts.mainChart.data.datasets[0].data = chartData['24h'];
+    // Обновление главного графика с историческими данными
+    function updateMainChartWithHistory() {
+        const points = 30; // 30 дней
+        const chartData = generateChartDataWithHistory(points);
+        const labels = getChartLabels(points);
+        
+        if (charts.mainChart) {
+            charts.mainChart.data.datasets[0].data = chartData;
+            charts.mainChart.data.labels = labels;
             charts.mainChart.update();
-        } else if (chartData['24h']) {
-            createChart('mainChart', chartData['24h'], '#e6b422', 'Курс $SCAM (24h)');
+        } else {
+            createChartWithHistory('mainChart', chartData, labels, '#e6b422', 'Курс $SCAM (30 днів)');
         }
         
-        if (charts.chart1h && chartData['1h']) {
-            charts.chart1h.data.datasets[0].data = chartData['1h'];
-            charts.chart1h.update();
-        } else if (chartData['1h']) {
-            createChart('chart1h', chartData['1h'], '#ff6b6b', '$SCAM 1H');
-        }
+        // Обновляем остальные графики
+        const volatility = 0.12;
+        const randomData = generateChartData(currentPrice, 60, volatility);
+        updateSmallCharts(randomData);
         
-        if (charts.chart6h && chartData['6h']) {
-            charts.chart6h.data.datasets[0].data = chartData['6h'];
-            charts.chart6h.update();
-        } else if (chartData['6h']) {
-            createChart('chart6h', chartData['6h'], '#4ecdc4', '$SCAM 6H');
-        }
-        
-        if (charts.chart24h && chartData['24h']) {
-            charts.chart24h.data.datasets[0].data = chartData['24h'];
-            charts.chart24h.update();
-        } else if (chartData['24h']) {
-            createChart('chart24h', chartData['24h'], '#e6b422', '$SCAM 24H');
-        }
-        
-        if (charts.chart7d && chartData['7d']) {
-            charts.chart7d.data.datasets[0].data = chartData['7d'];
-            charts.chart7d.update();
-        } else if (chartData['7d']) {
-            createChart('chart7d', chartData['7d'], '#a8e6cf', '$SCAM 7D');
-        }
-        
-        if (chartData['24h'] && chartData['24h'].length > 0) {
-            const firstPrice = chartData['24h'][0];
-            const lastPrice = chartData['24h'][chartData['24h'].length - 1];
+        if (chartData.length > 0) {
+            const firstPrice = chartData[0];
+            const lastPrice = chartData[chartData.length - 1];
             const change = ((lastPrice - firstPrice) / firstPrice * 100).toFixed(2);
             
             const priceChangeElement = document.getElementById('priceChange');
@@ -558,36 +634,141 @@ document.addEventListener('DOMContentLoaded', function() {
                 mainChartChange.style.color = change < 0 ? '#ff6b6b' : '#a8e6cf';
             }
         }
+    }
+    
+    function generateChartData(currentDbPrice, points, volatility) {
+        const data = [];
+        let price = Math.max(0.001, currentDbPrice * (1 - (volatility * 2)));
+        
+        for (let i = 0; i < points - 1; i++) {
+            const change = (Math.random() - 0.5) * volatility * price;
+            price = Math.max(0.001, price + change);
+            
+            const r = Math.random();
+            if (r > 0.97) price *= 1.1;
+            if (r < 0.03) price *= 0.9;
+            
+            data.push(Math.round(price * 1000) / 1000);
+        }
+        
+        data.push(currentDbPrice);
+        return data;
+    }
+    
+    function updateSmallCharts(chartData) {
+        if (charts.chart1h) {
+            charts.chart1h.data.datasets[0].data = chartData;
+            charts.chart1h.update();
+        } else {
+            createChart('chart1h', chartData, '#ff6b6b', '$SCAM 1H');
+        }
+        
+        if (charts.chart6h) {
+            charts.chart6h.data.datasets[0].data = chartData;
+            charts.chart6h.update();
+        } else {
+            createChart('chart6h', chartData, '#4ecdc4', '$SCAM 6H');
+        }
+        
+        if (charts.chart24h) {
+            charts.chart24h.data.datasets[0].data = chartData;
+            charts.chart24h.update();
+        } else {
+            createChart('chart24h', chartData, '#e6b422', '$SCAM 24H');
+        }
+        
+        if (charts.chart7d) {
+            charts.chart7d.data.datasets[0].data = chartData;
+            charts.chart7d.update();
+        } else {
+            createChart('chart7d', chartData, '#a8e6cf', '$SCAM 7D');
+        }
         
         updateMaxValues(chartData);
     }
     
     function updateMaxValues(chartData) {
         const periods = [
-            { id: '1h', data: chartData['1h'], maxId: 'max1h', changeId: 'change1h' },
-            { id: '6h', data: chartData['6h'], maxId: 'max6h', changeId: 'change6h' },
-            { id: '24h', data: chartData['24h'], maxId: 'max24h', changeId: 'change24h' },
-            { id: '7d', data: chartData['7d'], maxId: 'max7d', changeId: 'change7d' }
+            { id: '1h', maxId: 'max1h', changeId: 'change1h' },
+            { id: '6h', maxId: 'max6h', changeId: 'change6h' },
+            { id: '24h', maxId: 'max24h', changeId: 'change24h' },
+            { id: '7d', maxId: 'max7d', changeId: 'change7d' }
         ];
         
         periods.forEach(period => {
-            if (period.data && period.data.length > 0) {
+            if (chartData && chartData.length > 0) {
                 const maxElement = document.getElementById(period.maxId);
                 if (maxElement) {
-                    const maxValue = Math.max(...period.data);
-                    maxElement.textContent = maxValue.toFixed(8);
+                    const maxValue = Math.max(...chartData);
+                    maxElement.textContent = maxValue.toFixed(3);
                 }
                 
                 const changeElement = document.getElementById(period.changeId);
                 if (changeElement) {
-                    const first = period.data[0];
-                    const last = period.data[period.data.length - 1];
+                    const first = chartData[0];
+                    const last = chartData[chartData.length - 1];
                     const change = ((last - first) / first * 100).toFixed(2);
                     changeElement.textContent = (change > 0 ? '+' : '') + change + '%';
                     changeElement.style.color = change < 0 ? '#ff6b6b' : '#a8e6cf';
                 }
             }
         });
+    }
+    
+    function createChartWithHistory(canvasId, data, labels, color, label) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return null;
+        
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: 'rgba(230, 180, 34, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        labels: { color: '#fff' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const price = context.raw;
+                                const label = context.label;
+                                return [`💰 Ціна: $${price.toFixed(3)}`, `📅 ${label}`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { 
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                        ticks: { color: '#9ca3af', callback: function(value) { return '$' + value.toFixed(3); } }
+                    },
+                    x: { 
+                        ticks: { color: '#9ca3af', maxRotation: 45, minRotation: 45 }
+                    }
+                }
+            }
+        });
+        
+        charts[canvasId] = chart;
+        return chart;
     }
     
     function createChart(canvasId, data, color, label) {
@@ -622,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return `$${context.raw.toFixed(8)}`;
+                                return `$${context.raw.toFixed(3)}`;
                             }
                         }
                     }
@@ -630,7 +811,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: { 
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
-                        ticks: { color: '#9ca3af', callback: function(value) { return '$' + value.toFixed(8); } }
+                        ticks: { color: '#9ca3af', callback: function(value) { return '$' + value.toFixed(3); } }
                     },
                     x: { 
                         display: canvasId === 'mainChart',
@@ -690,6 +871,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.style.display = 'none';
                 document.body.style.overflow = '';
             }
+            
+            // Загружаем баланс после успешной авторизации
+            await updateCryptoPageBalance();
             
             return true;
         } catch (error) {
@@ -759,13 +943,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const lastPrice = newData[newData.length - 1];
                 const priceElement = document.getElementById('currentPrice');
                 if (priceElement) {
-                    priceElement.innerHTML = `<span class="scam-with-logo">$${lastPrice.toFixed(8)} <img src="лого.png" alt="лого"></span>`;
+                    priceElement.innerHTML = `<span class="scam-with-logo">$${lastPrice.toFixed(3)} <img src="лого.png" alt="лого"></span>`;
                 }
             });
         });
     }
     
     async function init() {
+        loadPriceHistory();
         await checkAuth();
         await updateAllStats();
         await updateLeaderboard();
@@ -842,8 +1027,8 @@ document.addEventListener('DOMContentLoaded', function() {
             "Михайло сьогодні в гарному настрої - курс впаде тільки на 90%",
             "Михайло продав квартиру і купив $SCAM, тепер живе в офісі",
             "Чим більше монет у всіх, тим вище курс! 🚀",
-            "Курс $SCAM = 0.05 + (количество монет × 0.01)! Без обмежень!",
-            "Можна купувати будь-яку кількість - навіть 0.00000001 монети! 💎",
+            "Курс $SCAM = 0.05 + (количество монет × 0.001)! Без обмежень!",
+            "Можна купувати будь-яку кількість - навіть 0.001 монети! 💎",
             "Якщо не вистачає на цілу монету - гроші повертаються! 💰",
             "Кіт Мурка написав курс лапкою - сьогодні +1000%!"
         ];
@@ -858,6 +1043,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+    
+    // Хранилище графиков
+    let charts = {};
     
     init();
 });

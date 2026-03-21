@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Особистий кабінет - Misha Corporation</title>
+    <title>Особистий кабінет - Scam Corporation</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -148,7 +148,7 @@
             border: 1px solid #3f444e;
             border-radius: 8px;
             margin-top: 5px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             display: none;
             z-index: 1000;
@@ -163,6 +163,7 @@
             cursor: pointer;
             border-bottom: 1px solid #2a2f36;
             color: #fff;
+            transition: background 0.2s;
         }
         
         .suggestion-item:last-child {
@@ -171,6 +172,11 @@
         
         .suggestion-item:hover {
             background: #2a2f36;
+        }
+        
+        .suggestion-item i {
+            margin-right: 10px;
+            color: #e6b422;
         }
         
         .suggestion-item small {
@@ -190,6 +196,11 @@
             box-sizing: border-box;
         }
         
+        .amount-input:focus {
+            outline: none;
+            border-color: #e6b422;
+        }
+        
         .transfer-btn {
             width: 100%;
             padding: 14px;
@@ -205,11 +216,13 @@
         
         .transfer-btn:hover {
             background: #ffd966;
+            transform: translateY(-2px);
         }
         
         .transfer-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
         
         .transfer-result {
@@ -293,9 +306,10 @@
         
         .tx-amount small {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #6b7280;
             font-weight: normal;
+            margin-top: 2px;
         }
         
         .no-data {
@@ -306,13 +320,23 @@
         }
         
         .transfer-item {
-            background: #1e2126;
             border-left: 3px solid #e6b422;
+            background: rgba(230, 180, 34, 0.05);
+        }
+        
+        .receive-item {
+            border-left: 3px solid #10b981;
+            background: rgba(16, 185, 129, 0.05);
         }
         
         .purchase-item {
-            background: #1e2126;
-            border-left: 3px solid #10b981;
+            border-left: 3px solid #e6b422;
+            background: rgba(230, 180, 34, 0.05);
+        }
+        
+        .sell-item {
+            border-left: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
         }
         
         .header {
@@ -331,12 +355,13 @@
             background: #111316;
             padding: 32px 0;
             border-top: 1px solid #2a2f36;
+            margin-top: 60px;
         }
 
         .search-hint {
             color: #9ca3af;
-            font-size: 0.85rem;
-            margin-top: 5px;
+            font-size: 0.8rem;
+            margin-top: 8px;
             display: block;
         }
 
@@ -348,15 +373,31 @@
         
         .selected-user-info {
             background: #1e2126;
-            padding: 12px;
+            padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
             color: #e6b422;
             display: none;
+            border-left: 3px solid #e6b422;
         }
         
         .selected-user-info.show {
             display: block;
+        }
+        
+        .selected-user-info i {
+            margin-right: 8px;
+        }
+        
+        .scam-with-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .scam-with-logo img {
+            height: 24px;
+            width: auto;
         }
         
         @media (max-width: 768px) {
@@ -387,7 +428,7 @@
         <div class="container header-container">
             <div class="logo">
                 <div class="gold-bar"></div>
-                <span class="logo-text">Misha Corporation</span>
+                <span class="logo-text">Scam Corporation</span>
             </div>
             <nav class="nav">
                 <ul class="nav-list">
@@ -420,7 +461,12 @@
                     <div class="balance-value" id="usdBalance">$0.00</div>
                 </div>
                 <div class="balance-card">
-                    <div class="balance-label">SCAM Balance</div>
+                    <div class="balance-label">
+                        <span class="scam-with-logo">
+                            SCAM Balance
+                            <img src="лого.png" alt="лого">
+                        </span>
+                    </div>
                     <div class="balance-value" id="scamBalance">0 <small>SCAM</small></div>
                 </div>
             </div>
@@ -437,8 +483,8 @@
                         <div class="info-value" id="profileLastName"></div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">ID</div>
-                        <div class="info-value" id="profileId"></div>
+                        <div class="info-label">Email</div>
+                        <div class="info-value" id="profileEmail"></div>
                     </div>
                 </div>
             </div>
@@ -454,12 +500,14 @@
                 <div class="search-container">
                     <input type="text" class="search-input" id="searchInput" placeholder="Введіть ім'я або прізвище отримувача..." autocomplete="off">
                     <div class="suggestions" id="suggestions"></div>
-                    <small class="search-hint">Введіть хоча б 2 літери імені або прізвища</small>
+                    <small class="search-hint">
+                        <i class="fas fa-info-circle"></i> Введіть хоча б 2 літери імені або прізвища
+                    </small>
                 </div>
                 
                 <div class="selected-user-info" id="selectedUserInfo"></div>
                 
-                <input type="number" class="amount-input" id="amountInput" placeholder="Сума переказу" min="0.01" step="0.01">
+                <input type="number" class="amount-input" id="amountInput" placeholder="Сума переказу" step="0.01">
                 
                 <button class="transfer-btn" id="transferBtn">Відправити</button>
                 
@@ -467,7 +515,9 @@
             </div>
             
             <div class="history-card">
-                <h2 class="history-title">Історія транзакцій</h2>
+                <h2 class="history-title">
+                    <i class="fas fa-history"></i> Історія транзакцій
+                </h2>
                 <div class="transactions-list" id="transactionsHistory"></div>
             </div>
         </div>
@@ -475,9 +525,24 @@
 
     <footer class="footer">
         <div class="container footer-container">
-            <div class="footer-left">Misha Corporation © 2026</div>
-            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
-            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+            <div class="footer-left">
+                <span class="scam-with-logo">
+                    Scam Corporation © 2026
+                    <img src="лого.png" alt="лого">
+                </span>
+            </div>
+            <div class="footer-center">
+                <span class="scam-with-logo">
+                    Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.
+                    <img src="лого.png" alt="лого">
+                </span>
+            </div>
+            <div class="footer-right">
+                <span class="scam-with-logo">
+                    2026 рік — рік ваших мрій, які гарантовано не збудуться.
+                    <img src="лого.png" alt="лого">
+                </span>
+            </div>
         </div>
     </footer>
 
@@ -500,6 +565,27 @@
             let transferType = 'usd';
             let selectedRecipient = null;
             let searchTimeout = null;
+            let currentPrice = 0.05;
+            
+            // Отримання поточної ціни SCAM
+            async function getCurrentPrice() {
+                try {
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('scam_balance');
+                    
+                    if (error) throw error;
+                    
+                    const totalSupply = data.reduce((sum, user) => sum + (parseFloat(user.scam_balance) || 0), 0);
+                    currentPrice = 0.05 + (totalSupply * 0.001);
+                    currentPrice = Math.round(currentPrice * 1000) / 1000;
+                    
+                    return currentPrice;
+                } catch (error) {
+                    console.error('Помилка отримання ціни:', error);
+                    return 0.05;
+                }
+            }
             
             // Завантаження даних користувача
             async function loadUserData() {
@@ -518,12 +604,12 @@
                         
                         // Оновлюємо баланси
                         document.getElementById('usdBalance').textContent = `$${parseFloat(data.balance).toFixed(2)}`;
-                        document.getElementById('scamBalance').innerHTML = `${Math.floor(data.scam_balance || 0)} <small>SCAM</small>`;
+                        document.getElementById('scamBalance').innerHTML = `${(data.scam_balance || 0).toFixed(3)} <small>SCAM</small>`;
                         
                         // Оновлюємо профіль
                         document.getElementById('profileFirstName').textContent = data.first_name;
                         document.getElementById('profileLastName').textContent = data.last_name;
-                        document.getElementById('profileId').textContent = data.id.substring(0, 8) + '...';
+                        document.getElementById('profileEmail').textContent = data.email;
                         
                         // Оновлюємо кнопку в хедері
                         const accountBtnText = document.getElementById('accountBtnText');
@@ -554,30 +640,69 @@
                     container.innerHTML = '';
                     
                     if (!data || data.length === 0) {
-                        container.innerHTML = '<div class="no-data">Історія транзакцій порожня</div>';
+                        container.innerHTML = '<div class="no-data"><i class="fas fa-inbox"></i> Історія транзакцій порожня</div>';
                         return;
                     }
                     
                     data.forEach(tx => {
-                        const date = new Date(tx.created_at).toLocaleString('uk-UA');
+                        const date = new Date(tx.created_at);
+                        const formattedDate = date.toLocaleString('uk-UA', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
                         const item = document.createElement('div');
                         item.className = 'transaction-item';
                         
-                        // Добавляем класс в зависимости от типа
-                        if (tx.type === 'Переказ' || tx.type === 'Transfer') {
-                            item.classList.add('transfer-item');
-                        } else if (tx.type === 'Покупка' || tx.type === 'Buy') {
-                            item.classList.add('purchase-item');
+                        // Визначаємо тип транзакції
+                        let typeClass = '';
+                        let typeIcon = '';
+                        
+                        if (tx.type === 'Переказ') {
+                            typeClass = 'transfer-item';
+                            typeIcon = '📤';
+                        } else if (tx.type === 'Отримання') {
+                            typeClass = 'receive-item';
+                            typeIcon = '📥';
+                        } else if (tx.type === 'Купівля SCAM') {
+                            typeClass = 'purchase-item';
+                            typeIcon = '💰';
+                        } else if (tx.type === 'Продаж SCAM') {
+                            typeClass = 'sell-item';
+                            typeIcon = '💸';
+                        } else {
+                            typeClass = 'transfer-item';
+                            typeIcon = '🔄';
+                        }
+                        
+                        item.classList.add(typeClass);
+                        
+                        let amountDisplay = '';
+                        let detailsDisplay = '';
+                        
+                        if (tx.currency === 'USD') {
+                            amountDisplay = `$${parseFloat(tx.amount).toFixed(2)} USD`;
+                        } else if (tx.currency === 'SCAM') {
+                            amountDisplay = `${parseFloat(tx.amount).toFixed(3)} SCAM`;
+                        } else {
+                            amountDisplay = `${tx.amount} ${tx.currency || ''}`;
+                        }
+                        
+                        if (tx.details) {
+                            detailsDisplay = `<small>${tx.details}</small>`;
                         }
                         
                         item.innerHTML = `
                             <div class="tx-info">
-                                <span class="tx-type">${tx.type || 'Операція'}</span>
-                                <span class="tx-date">${date}</span>
+                                <span class="tx-type">${typeIcon} ${tx.type || 'Операція'}</span>
+                                <span class="tx-date">${formattedDate}</span>
                             </div>
                             <div class="tx-amount">
-                                ${tx.amount} ${tx.currency || 'SCAM'}
-                                ${tx.details ? `<small>${tx.details}</small>` : ''}
+                                ${amountDisplay}
+                                ${detailsDisplay}
                             </div>
                         `;
                         container.appendChild(item);
@@ -601,20 +726,22 @@
                 
                 if (query.length < 2) {
                     suggestionsDiv.classList.remove('show');
+                    selectedRecipient = null;
+                    selectedUserInfo.classList.remove('show');
                     return;
                 }
                 
-                suggestionsDiv.innerHTML = '<div class="loading-suggestions">Пошук...</div>';
+                suggestionsDiv.innerHTML = '<div class="loading-suggestions"><i class="fas fa-spinner fa-spin"></i> Пошук...</div>';
                 suggestionsDiv.classList.add('show');
                 
                 searchTimeout = setTimeout(async () => {
                     try {
                         const { data, error } = await supabase
                             .from('users')
-                            .select('id, first_name, last_name, username')
+                            .select('id, first_name, last_name, email')
                             .neq('id', currentUser.id)
-                            .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,username.ilike.%${query}%`)
-                            .limit(5);
+                            .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
+                            .limit(10);
                         
                         suggestionsDiv.innerHTML = '';
                         
@@ -624,19 +751,19 @@
                             data.forEach(user => {
                                 const div = document.createElement('div');
                                 div.className = 'suggestion-item';
-                                const name = user.username || `${user.first_name} ${user.last_name}`;
+                                const fullName = `${user.first_name} ${user.last_name}`.trim();
                                 div.innerHTML = `
-                                    <i class="fas fa-user"></i>
-                                    <span>${name}</span>
-                                    <small>ID: ${user.id.substring(0, 6)}...</small>
+                                    <i class="fas fa-user-circle"></i>
+                                    <strong>${fullName}</strong>
+                                    <small>${user.email}</small>
                                 `;
                                 div.addEventListener('click', () => {
                                     selectedRecipient = user;
-                                    searchInput.value = name;
+                                    searchInput.value = fullName;
                                     selectedUserInfo.innerHTML = `
                                         <i class="fas fa-check-circle"></i> 
-                                        Отримувач: <strong>${name}</strong>
-                                        <span style="color: #6b7280; margin-left: 10px;">ID: ${user.id.substring(0, 8)}...</span>
+                                        Отримувач: <strong>${fullName}</strong>
+                                        <span style="color: #6b7280; margin-left: 10px;">${user.email}</span>
                                     `;
                                     selectedUserInfo.classList.add('show');
                                     suggestionsDiv.classList.remove('show');
@@ -644,13 +771,13 @@
                                 suggestionsDiv.appendChild(div);
                             });
                         } else {
-                            suggestionsDiv.innerHTML = '<div class="suggestion-item">Користувачів не знайдено</div>';
+                            suggestionsDiv.innerHTML = '<div class="suggestion-item"><i class="fas fa-user-slash"></i> Користувачів не знайдено</div>';
                         }
                     } catch (error) {
                         console.error('Помилка пошуку:', error);
-                        suggestionsDiv.innerHTML = '<div class="suggestion-item">Помилка при пошуку</div>';
+                        suggestionsDiv.innerHTML = '<div class="suggestion-item"><i class="fas fa-exclamation-triangle"></i> Помилка при пошуку</div>';
                     }
-                }, 300);
+                }, 500);
             });
             
             // Закриття підказок при кліку поза
@@ -666,13 +793,15 @@
                 document.getElementById('tabUsd').classList.add('active');
                 document.getElementById('tabScam').classList.remove('active');
                 document.getElementById('amountInput').placeholder = 'Сума в USD';
+                document.getElementById('amountInput').step = '0.01';
             });
             
             document.getElementById('tabScam').addEventListener('click', function() {
                 transferType = 'scam';
                 document.getElementById('tabScam').classList.add('active');
                 document.getElementById('tabUsd').classList.remove('active');
-                document.getElementById('amountInput').placeholder = 'Кількість SCAM (цілі числа)';
+                document.getElementById('amountInput').placeholder = 'Кількість SCAM (можна дробове)';
+                document.getElementById('amountInput').step = '0.001';
             });
             
             // Обробка переказу
@@ -681,35 +810,46 @@
                 const resultDiv = document.getElementById('transferResult');
                 
                 if (!selectedRecipient) {
-                    resultDiv.textContent = '❌ Виберіть отримувача зі списку';
+                    resultDiv.innerHTML = '❌ Виберіть отримувача зі списку';
                     resultDiv.className = 'transfer-result error';
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        resultDiv.className = 'transfer-result';
+                    }, 3000);
                     return;
                 }
                 
                 if (isNaN(amount) || amount <= 0) {
-                    resultDiv.textContent = '❌ Введіть правильну суму';
+                    resultDiv.innerHTML = '❌ Введіть правильну суму';
                     resultDiv.className = 'transfer-result error';
-                    return;
-                }
-                
-                // Для SCAM проверяем целое число
-                if (transferType === 'scam' && !Number.isInteger(amount)) {
-                    resultDiv.textContent = '❌ SCAM можна переказувати тільки цілими монетами!';
-                    resultDiv.className = 'transfer-result error';
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        resultDiv.className = 'transfer-result';
+                    }, 3000);
                     return;
                 }
                 
                 // Перевірка достатності коштів
-                if (transferType === 'usd' && amount > parseFloat(currentUser.balance)) {
-                    resultDiv.textContent = `❌ Недостатньо USD. Ваш баланс: $${parseFloat(currentUser.balance).toFixed(2)}`;
-                    resultDiv.className = 'transfer-result error';
-                    return;
-                }
-                
-                if (transferType === 'scam' && amount > parseFloat(currentUser.scam_balance)) {
-                    resultDiv.textContent = `❌ Недостатньо SCAM. Ваш баланс: ${Math.floor(currentUser.scam_balance)} SCAM`;
-                    resultDiv.className = 'transfer-result error';
-                    return;
+                if (transferType === 'usd') {
+                    if (amount > parseFloat(currentUser.balance)) {
+                        resultDiv.innerHTML = `❌ Недостатньо USD. Ваш баланс: $${parseFloat(currentUser.balance).toFixed(2)}`;
+                        resultDiv.className = 'transfer-result error';
+                        setTimeout(() => {
+                            resultDiv.style.display = 'none';
+                            resultDiv.className = 'transfer-result';
+                        }, 3000);
+                        return;
+                    }
+                } else {
+                    if (amount > parseFloat(currentUser.scam_balance)) {
+                        resultDiv.innerHTML = `❌ Недостатньо SCAM. Ваш баланс: ${(currentUser.scam_balance || 0).toFixed(3)} SCAM`;
+                        resultDiv.className = 'transfer-result error';
+                        setTimeout(() => {
+                            resultDiv.style.display = 'none';
+                            resultDiv.className = 'transfer-result';
+                        }, 3000);
+                        return;
+                    }
                 }
                 
                 const transferBtn = document.getElementById('transferBtn');
@@ -793,7 +933,7 @@
                             amount: amount,
                             currency: 'SCAM',
                             amount_scam: amount,
-                            details: `Переказ ${amount} SCAM користувачу ${recipient.first_name} ${recipient.last_name}`
+                            details: `Переказ ${amount.toFixed(3)} SCAM користувачу ${recipient.first_name} ${recipient.last_name}`
                         }]);
                         
                         // Записуємо транзакцію для отримувача
@@ -805,11 +945,11 @@
                             amount: amount,
                             currency: 'SCAM',
                             amount_scam: amount,
-                            details: `Отримано ${amount} SCAM від ${currentUser.first_name} ${currentUser.last_name}`
+                            details: `Отримано ${amount.toFixed(3)} SCAM від ${currentUser.first_name} ${currentUser.last_name}`
                         }]);
                     }
                     
-                    resultDiv.textContent = '✅ Переказ успішний!';
+                    resultDiv.innerHTML = '✅ Переказ успішний!';
                     resultDiv.className = 'transfer-result success';
                     
                     // Очищаємо форму
@@ -829,8 +969,12 @@
                     
                 } catch (error) {
                     console.error('Помилка переказу:', error);
-                    resultDiv.textContent = '❌ Помилка: ' + (error.message || 'Спробуйте пізніше');
+                    resultDiv.innerHTML = '❌ Помилка: ' + (error.message || 'Спробуйте пізніше');
                     resultDiv.className = 'transfer-result error';
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        resultDiv.className = 'transfer-result';
+                    }, 3000);
                 }
                 
                 transferBtn.disabled = false;
