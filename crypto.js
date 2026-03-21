@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let supabase = null;
     let currentUser = null;
     let currentPrice = 0.05;
-    let totalSupply = 0; // Общее количество монет в обращении
+    let totalSupply = 0;
     
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 0;
             }
             
-            // Суммируем все балансы
             const total = data.reduce((sum, user) => {
                 return sum + (parseFloat(user.scam_balance) || 0);
             }, 0);
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Расчет цены: 1 SCAM = +0.01 к курсу
+    // Расчет цены
     async function calculatePrice() {
         try {
             if (!supabase) return 0.05;
@@ -71,19 +70,38 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const scamAmount = usdAmount / currentPrice;
+        // Рассчитываем сколько целых монет можно купить
+        const wholeScamAmount = Math.floor(usdAmount / currentPrice);
+        const fractionalPart = (usdAmount / currentPrice) - wholeScamAmount;
         
-        previewElement.innerHTML = `
-            <div style="background: rgba(230, 180, 34, 0.1); border-left: 3px solid #e6b422; padding: 10px; margin-top: 10px; border-radius: 5px;">
-                <div style="color: #a8e6cf; font-size: 14px;">📊 Попередній перегляд:</div>
-                <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">
-                    Ви отримаєте: <span style="color: #e6b422;">${scamAmount.toFixed(8)} $SCAM</span>
+        let previewHtml = `
+            <div class="preview-box">
+                <div class="preview-label">📊 Попередній перегляд:</div>
+                <div class="preview-amount">
+                    Ви отримаєте: <span>${wholeScamAmount.toFixed(8)} $SCAM</span>
                 </div>
-                <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;">
+        `;
+        
+        if (fractionalPart > 0 && fractionalPart < 1) {
+            const remainingUSD = fractionalPart * currentPrice;
+            previewHtml += `
+                <div class="preview-warning" style="color: #ffaa44; margin-top: 5px;">
+                    ⚠️ На ${fractionalPart.toFixed(8)} $SCAM не вистачає коштів (потрібно ще $${(currentPrice - remainingUSD).toFixed(8)})
+                </div>
+                <div class="preview-refund" style="color: #a8e6cf; margin-top: 5px;">
+                    💰 ${remainingUSD.toFixed(8)} USD буде повернено на баланс
+                </div>
+            `;
+        }
+        
+        previewHtml += `
+                <div class="preview-rate" style="margin-top: 5px;">
                     За курсом: 1 $SCAM = $${currentPrice.toFixed(8)}
                 </div>
             </div>
         `;
+        
+        previewElement.innerHTML = previewHtml;
     }
     
     // Функция для обновления предпросмотра при продаже
@@ -103,19 +121,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const usdAmount = scamAmount * currentPrice;
         
         previewElement.innerHTML = `
-            <div style="background: rgba(230, 180, 34, 0.1); border-left: 3px solid #e6b422; padding: 10px; margin-top: 10px; border-radius: 5px;">
-                <div style="color: #a8e6cf; font-size: 14px;">📊 Попередній перегляд:</div>
-                <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">
-                    Ви отримаєте: <span style="color: #e6b422;">$${usdAmount.toFixed(8)} USD</span>
+            <div class="preview-box">
+                <div class="preview-label">📊 Попередній перегляд:</div>
+                <div class="preview-amount">
+                    Ви отримаєте: <span>$${usdAmount.toFixed(8)} USD</span>
                 </div>
-                <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;">
+                <div class="preview-rate">
                     За курсом: 1 $SCAM = $${currentPrice.toFixed(8)}
                 </div>
             </div>
         `;
     }
     
-    // Генерация данных для графика
     function generateChartData(currentDbPrice, points, volatility) {
         const data = [];
         let price = Math.max(0.00000001, currentDbPrice * (1 - (volatility * 2)));
@@ -135,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return data;
     }
     
-    // Обновление баланса пользователя
     async function updateUserBalance() {
         if (!currentUser || !supabase) return;
         
@@ -177,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Покупка SCAM
+    // Покупка SCAM - с возвратом остатка
     async function buyScam() {
         const usdAmountInput = document.getElementById('buyAmount');
         if (!usdAmountInput) return { success: false, message: 'Поле ввода не найдено' };
@@ -201,19 +217,26 @@ document.addEventListener('DOMContentLoaded', function() {
             return { success: false, message: errorMsg };
         }
         
-        const amountToReceive = usdToSpend / currentPrice;
+        // Рассчитываем сколько ЦЕЛЫХ монет можно купить
+        const wholeScamAmount = Math.floor(usdToSpend / currentPrice);
         
-        if (amountToReceive <= 0) {
-            const errorMsg = `❌ Сума занадто мала. Мінімальна сума: $0.00000001`;
+        if (wholeScamAmount === 0) {
+            // Если не хватает даже на 1 целую монету
+            const errorMsg = `❌ Недостатньо коштів для покупки 1 $SCAM. Мінімальна сума: $${currentPrice.toFixed(8)}`;
             showTransactionResult('buyResult', errorMsg, 'error');
             return { success: false, message: errorMsg };
         }
         
-        const finalCost = amountToReceive * currentPrice;
-        const newUsdBalance = usdBalance - finalCost;
-        const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + amountToReceive;
+        // Стоимость целых монет
+        const costForWhole = wholeScamAmount * currentPrice;
+        // Остаток, который вернется на баланс
+        const remainingUSD = usdToSpend - costForWhole;
+        
+        const newUsdBalance = usdBalance - costForWhole; // Списываем только за целые монеты
+        const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + wholeScamAmount;
         
         try {
+            // Обновляем баланс пользователя
             const { error: updateError } = await supabase
                 .from('users')
                 .update({
@@ -224,6 +247,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (updateError) throw updateError;
             
+            // Записываем транзакцию
+            let transactionDetails = `Витрачено $${costForWhole.toFixed(8)} на покупку ${wholeScamAmount.toFixed(8)} $SCAM (ціна: $${currentPrice.toFixed(8)})`;
+            
+            if (remainingUSD > 0) {
+                transactionDetails += `. Повернено на баланс: $${remainingUSD.toFixed(8)} USD (не вистачило на цілу монету)`;
+            }
+            
             await supabase
                 .from('transactions')
                 .insert([{
@@ -231,12 +261,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     sender_id: currentUser.id,
                     recipient_id: currentUser.id,
                     type: 'Купівля SCAM',
-                    amount: amountToReceive,
+                    amount: wholeScamAmount,
                     currency: 'SCAM',
-                    amount_usd: finalCost,
-                    details: `Витрачено $${finalCost.toFixed(8)} на покупку ${amountToReceive.toFixed(8)} $SCAM (ціна: $${currentPrice.toFixed(8)})`
+                    amount_usd: costForWhole,
+                    details: transactionDetails
                 }]);
             
+            // Обновляем локальные данные
             currentUser.balance = newUsdBalance;
             currentUser.scam_balance = newScamBalance;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -246,9 +277,12 @@ document.addEventListener('DOMContentLoaded', function() {
             await updateLeaderboard();
             
             usdAmountInput.value = '';
-            updateBuyPreview(); // Очищаем предпросмотр
+            updateBuyPreview();
             
-            const successMsg = `✅ Успішно! Ви купили ${amountToReceive.toFixed(8)} $SCAM за $${finalCost.toFixed(8)}`;
+            let successMsg = `✅ Успішно! Ви купили ${wholeScamAmount.toFixed(8)} $SCAM за $${costForWhole.toFixed(8)}`;
+            if (remainingUSD > 0) {
+                successMsg += `\n💰 Повернено на баланс: $${remainingUSD.toFixed(8)} USD (не вистачило на цілу монету)`;
+            }
             showTransactionResult('buyResult', successMsg, 'success');
             
             return { success: true, message: successMsg };
@@ -327,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await updateLeaderboard();
             
             amountInput.value = '';
-            updateSellPreview(); // Очищаем предпросмотр
+            updateSellPreview();
             
             const successMsg = `✅ Успішно! Ви продали ${amount.toFixed(8)} $SCAM за $${usdAmount.toFixed(8)}`;
             showTransactionResult('sellResult', successMsg, 'success');
@@ -348,16 +382,12 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 resultElement.textContent = '';
                 resultElement.className = 'transaction-result';
-            }, 4000);
+            }, 5000);
         }
     }
     
-    // Обновление таблицы лидеров
     async function updateLeaderboard() {
-        if (!supabase) {
-            console.error('Supabase не инициализирован');
-            return;
-        }
+        if (!supabase) return;
         
         try {
             const { data, error } = await supabase
@@ -366,10 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .order('scam_balance', { ascending: false })
                 .limit(10);
             
-            if (error) {
-                console.error('Ошибка загрузки лидеров:', error.message);
-                return;
-            }
+            if (error) throw error;
             
             const tbody = document.getElementById('leaderboardBody');
             if (!tbody) return;
@@ -427,7 +454,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Обновление статистики и графиков
     async function updateAllStats() {
         try {
             currentPrice = await calculatePrice();
@@ -465,7 +491,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             updateAllCharts(chartData);
             
-            // Обновляем предпросмотр при изменении цены
             updateBuyPreview();
             updateSellPreview();
             
@@ -478,7 +503,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Хранилище графиков
     let charts = {};
     
     function updateAllCharts(chartData) {
@@ -620,7 +644,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return chart;
     }
     
-    // Проверка авторизации
     async function checkAuth() {
         const savedUser = localStorage.getItem('currentUser');
         
@@ -742,7 +765,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Инициализация
     async function init() {
         await checkAuth();
         await updateAllStats();
@@ -750,7 +772,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         setupPeriodButtons();
         
-        // Добавляем обработчики для предпросмотра
         const buyAmountInput = document.getElementById('buyAmount');
         const sellAmountInput = document.getElementById('sellAmount');
         
@@ -823,7 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "Чим більше монет у всіх, тим вище курс! 🚀",
             "Курс $SCAM = 0.05 + (количество монет × 0.01)! Без обмежень!",
             "Можна купувати будь-яку кількість - навіть 0.00000001 монети! 💎",
-            "Дивіться попередній перегляд перед покупкою! 👀",
+            "Якщо не вистачає на цілу монету - гроші повертаються! 💰",
             "Кіт Мурка написав курс лапкою - сьогодні +1000%!"
         ];
         
