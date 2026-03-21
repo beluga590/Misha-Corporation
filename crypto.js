@@ -96,32 +96,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Покупка SCAM (только целые монеты)
+    // Покупка SCAM (теперь ввод в USD)
     async function buyScam() {
-        const amountInput = document.getElementById('buyAmount');
-        if (!amountInput) return { success: false, message: 'Поле ввода не найдено' };
+        const usdAmountInput = document.getElementById('buyAmount');
+        if (!usdAmountInput) return { success: false, message: 'Поле ввода не найдено' };
         
-        // Получаем строковое значение из поля
-        const inputValue = amountInput.value.trim();
+        const usdToSpend = parseFloat(usdAmountInput.value.trim());
         
-        // Проверка: если поле пустое
-        if (inputValue === '') {
-            showTransactionResult('buyResult', '❌ Введіть кількість монет', 'error');
-            return { success: false, message: 'Пустое поле' };
-        }
-        
-        // Проверка, что введено целое число (без запятых, точек и дробной части)
-        const integerRegex = /^\d+$/;
-        if (!integerRegex.test(inputValue)) {
-            showTransactionResult('buyResult', '❌ Можна купувати тільки цілу кількість монет! (1, 2, 3...)', 'error');
-            return { success: false, message: 'Не целое число' };
-        }
-        
-        const amount = parseInt(inputValue, 10);
-        
-        if (isNaN(amount) || amount <= 0) {
-            showTransactionResult('buyResult', '❌ Введіть додатнє ціле число', 'error');
-            return { success: false, message: 'Неверное значение' };
+        // Проверка корректности ввода
+        if (isNaN(usdToSpend) || usdToSpend <= 0) {
+            showTransactionResult('buyResult', '❌ Введіть коректну суму в USD!', 'error');
+            return { success: false, message: 'Неверная сумма' };
         }
         
         if (!currentUser) {
@@ -129,17 +114,26 @@ document.addEventListener('DOMContentLoaded', function() {
             return { success: false, message: '🔒 Необхідно авторизуватися для покупки' };
         }
         
-        const priceUSD = amount * currentPrice;
+        // Проверка достаточности средств
         const usdBalance = parseFloat(currentUser.balance);
-        
-        if (priceUSD > usdBalance) {
-            const errorMsg = `💰 Недостатньо USD. Потрібно: $${priceUSD.toFixed(2)}, Ваш баланс: $${usdBalance.toFixed(2)}`;
+        if (usdToSpend > usdBalance) {
+            const errorMsg = `💰 Недостатньо USD. Ваш баланс: $${usdBalance.toFixed(2)}`;
             showTransactionResult('buyResult', errorMsg, 'error');
             return { success: false, message: errorMsg };
         }
         
-        const newUsdBalance = usdBalance - priceUSD;
-        const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + amount;
+        // Вычисляем сколько ЦЕЛЫХ монет выйдет на эту сумму
+        const amountToReceive = Math.floor(usdToSpend / currentPrice);
+        
+        if (amountToReceive < 1) {
+            const errorMsg = `❌ Мінімальна сума покупки при поточному курсі: $${currentPrice.toFixed(2)} (1 $SCAM)`;
+            showTransactionResult('buyResult', errorMsg, 'error');
+            return { success: false, message: errorMsg };
+        }
+        
+        const finalCost = amountToReceive * currentPrice; // Списываем только за целые монеты
+        const newUsdBalance = usdBalance - finalCost;
+        const newScamBalance = (parseFloat(currentUser.scam_balance) || 0) + amountToReceive;
         
         try {
             // Обновляем баланс пользователя
@@ -160,11 +154,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     user_id: currentUser.id,
                     sender_id: currentUser.id,
                     recipient_id: currentUser.id,
-                    type: 'Покупка',
-                    amount: amount,
+                    type: 'Купівля SCAM',
+                    amount: amountToReceive,
                     currency: 'SCAM',
-                    amount_usd: priceUSD,
-                    details: `Покупка ${amount} $SCAM за $${priceUSD.toFixed(2)} (ціна: $${currentPrice.toFixed(2)})`
+                    amount_usd: finalCost,
+                    details: `Витрачено $${finalCost.toFixed(2)} на покупку ${amountToReceive} $SCAM (ціна: $${currentPrice.toFixed(2)})`
                 }]);
             
             // Обновляем локальные данные
@@ -174,11 +168,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             await updateUserBalance();
             await updateAllStats();
-            await updateLeaderboard(); // Обновляем лидерборд после покупки
+            await updateLeaderboard();
             
-            amountInput.value = '';
+            usdAmountInput.value = '';
             
-            const successMsg = `✅ Успішно! Ви купили ${amount} $SCAM за $${priceUSD.toFixed(2)}`;
+            const successMsg = `✅ Успішно! Ви купили ${amountToReceive} $SCAM за $${finalCost.toFixed(2)}`;
             showTransactionResult('buyResult', successMsg, 'success');
             
             return { success: true, message: successMsg };
@@ -251,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     user_id: currentUser.id,
                     sender_id: currentUser.id,
                     recipient_id: currentUser.id,
-                    type: 'Продаж',
+                    type: 'Продаж SCAM',
                     amount: amount,
                     currency: 'SCAM',
                     amount_usd: usdAmount,
@@ -265,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             await updateUserBalance();
             await updateAllStats();
-            await updateLeaderboard(); // Обновляем лидерборд после продажи
+            await updateLeaderboard();
             
             amountInput.value = '';
             
@@ -331,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.innerHTML = `
                         <th scope="row">${i + 1}</th>
                         <td>${escapeHtml(name)}</td>
-                        <td>
+                         <td>
                             <span class="scam-with-logo">
                                 ${balance}
                                 <img src="лого.png" alt="лого">
