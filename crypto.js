@@ -42,8 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Расчет цены на основе общего количества монет (чем больше монет, тем дороже)
-    // Формула: базовая цена 0.05 + логарифмический рост от общего количества монет
+    // Расчет цены: 1 SCAM = +0.01 к курсу
+    // Формула: цена = базовая цена (0.05) + (общее количество монет * 0.01)
+    // БЕЗ ограничения максимума - может расти до бесконечности
     async function calculatePrice() {
         try {
             if (!supabase) return 0.05;
@@ -51,16 +52,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Получаем общее количество монет в обращении
             totalSupply = await getTotalScamSupply();
             
-            if (totalSupply === 0) return 0.05;
+            // Формула: 1 монета = +0.01 к курсу
+            // Цена = 0.05 (базовая) + (totalSupply * 0.01)
+            let price = 0.05 + (totalSupply * 0.01);
             
-            // Формула цены: чем больше монет у всех, тем выше цена
-            // Используем логарифмическую шкалу для плавного роста
-            // Максимальная цена ограничена 5.00
-            let price = 0.05 * Math.pow(1.005, totalSupply / 100);
-            
-            // Ограничиваем максимальную цену 5.00
-            price = Math.min(5.00, price);
-            
+            // Нет ограничения максимума - может расти бесконечно
             // Округляем до 4 знаков для точности
             return Math.round(price * 10000) / 10000;
         } catch (error) {
@@ -72,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Генерация данных для графика, заканчивающихся на текущую цену из БД
     function generateChartData(currentDbPrice, points, volatility) {
         const data = [];
-        let price = currentDbPrice * (1 - (volatility * 2));
+        let price = Math.max(0.01, currentDbPrice * (1 - (volatility * 2)));
         
         for (let i = 0; i < points - 1; i++) {
             const change = (Math.random() - 0.5) * volatility * price;
@@ -161,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const amountToReceive = Math.floor(usdToSpend / currentPrice);
         
         if (amountToReceive < 1) {
-            const errorMsg = `❌ Мінімальна сума покупки при поточному курсі: $${currentPrice.toFixed(2)} (1 $SCAM)`;
+            const errorMsg = `❌ Мінімальна сума покупки при поточному курсі: $${currentPrice.toFixed(4)} (1 $SCAM)`;
             showTransactionResult('buyResult', errorMsg, 'error');
             return { success: false, message: errorMsg };
         }
@@ -775,8 +771,8 @@ document.addEventListener('DOMContentLoaded', function() {
             "Михайло каже: 'Курс растет! Купуйте, поки я друкую!' 🤣",
             "Михайло сьогодні в гарному настрої - курс впаде тільки на 90%",
             "Михайло продав квартиру і купив $SCAM, тепер живе в офісі",
-            "Чим більше людей володіють $SCAM, тим вище курс! 🚀",
-            "Курс $SCAM визначається кількістю холдерів! Зараз їх багато!",
+            "Чим більше монет у всіх, тим вище курс! 🚀",
+            "Курс $SCAM = 0.05 + (количество монет × 0.01)! Без обмежень!",
             "Можна купувати тільки цілі монети! Дробових немає!",
             "Купуйте $SCAM, поки Михайло спить і не може змінити курс!",
             "Кіт Мурка написав курс лапкою - сьогодні +1000%!"
