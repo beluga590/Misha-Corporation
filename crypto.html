@@ -183,6 +183,72 @@
         .dashboard-link:hover {
             text-decoration: none;
         }
+
+        /* Стили для предпросмотра */
+        .preview-box {
+            background: rgba(230, 180, 34, 0.1);
+            border-left: 3px solid #e6b422;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .preview-label {
+            color: #a8e6cf;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .preview-amount {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .preview-amount span {
+            color: #e6b422;
+        }
+
+        .preview-rate {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+
+        .transaction-input {
+            width: 100%;
+            padding: 12px;
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .transaction-input:focus {
+            outline: none;
+            border-color: #e6b422;
+            box-shadow: 0 0 5px rgba(230, 180, 34, 0.3);
+        }
+
+        .transaction-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -514,8 +580,9 @@
                         <p class="transaction-warning">*Гроші не повертаються навіть уві сні</p>
 
                         <div class="transaction-controls">
-                            <label for="buyAmount" class="visually-hidden">Сума в грн</label>
-                            <input type="number" id="buyAmount" class="transaction-input" placeholder="Сума в грн" min="1" value="100">
+                            <label for="buyAmount" class="visually-hidden">Сума в USD</label>
+                            <input type="number" id="buyAmount" class="transaction-input" placeholder="Сума в USD" step="any" value="100">
+                            <div id="buyPreview"></div>
                             <button class="transaction-btn buy-btn-protected" id="buyBtn" aria-label="Купити Scam Coin">Купити</button>
                         </div>
                         <div class="transaction-result" id="buyResult" aria-live="polite"></div>
@@ -532,7 +599,8 @@
 
                         <div class="transaction-controls">
                             <label for="sellAmount" class="visually-hidden">Кількість Scam Coin</label>
-                            <input type="number" id="sellAmount" class="transaction-input" placeholder="Кількість Scam Coin" min="1" value="1">
+                            <input type="number" id="sellAmount" class="transaction-input" placeholder="Кількість SCAM" step="any" value="1">
+                            <div id="sellPreview"></div>
                             <button class="transaction-btn buy-btn-protected" id="sellBtn" aria-label="Продати Scam Coin">Продати</button>
                         </div>
                         <div class="transaction-result" id="sellResult" aria-live="polite"></div>
@@ -551,32 +619,32 @@
             </div>
         </section>
 
-       <section class="crypto-leaderboard" aria-labelledby="leaderboard-heading">
-    <div class="container">
-        <h2 id="leaderboard-heading" class="section-title">
-            <span class="scam-with-logo">
-                ТОП холдерів $SCAM
-                <img src="лого.png" alt="лого">
-            </span>
-        </h2>
-        <div class="leaderboard-container">
-            <table class="leaderboard-table">
-                <caption class="visually-hidden">Список найбільших власників Scam Coin</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Ім'я</th>
-                        <th scope="col">Баланс</th>
-                        <th scope="col">Статус</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboardBody">
-                    <!-- Таблица будет заполняться через JavaScript -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
+        <section class="crypto-leaderboard" aria-labelledby="leaderboard-heading">
+            <div class="container">
+                <h2 id="leaderboard-heading" class="section-title">
+                    <span class="scam-with-logo">
+                        ТОП холдерів $SCAM
+                        <img src="лого.png" alt="лого">
+                    </span>
+                </h2>
+                <div class="leaderboard-container">
+                    <table class="leaderboard-table">
+                        <caption class="visually-hidden">Список найбільших власників Scam Coin</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Ім'я</th>
+                                <th scope="col">Баланс</th>
+                                <th scope="col">Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <!-- Таблица будет заполняться через JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer class="footer">
