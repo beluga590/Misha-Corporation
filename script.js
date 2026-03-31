@@ -165,3 +165,14 @@ function updateAuthHeader() {
         };
     }
 }
+
+// В script.js, найдите обработчик для victimButton и обновите:
+const victimBtn = document.getElementById('victimButton');
+if (victimBtn) {
+    victimBtn.addEventListener('mouseenter', function() {
+        this.textContent = t('hero_btn_hover');
+    });
+    victimBtn.addEventListener('mouseleave', function() {
+        this.textContent = t('hero_btn');
+    });
+}

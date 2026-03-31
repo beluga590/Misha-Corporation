@@ -249,6 +249,191 @@
             flex-direction: column;
             gap: 10px;
         }
+
+                /* ========== МОБІЛЬНА АДАПТАЦІЯ ДЛЯ CRYPTO.HTML ========== */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px;
+            }
+            
+            .stat-card {
+                padding: 12px;
+            }
+            
+            .stat-label {
+                font-size: 11px;
+            }
+            
+            .stat-value {
+                font-size: 14px;
+            }
+            
+            .stat-value .scam-with-logo img {
+                height: 12px;
+            }
+            
+            .chart-controls {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            
+            .chart-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            
+            .chart-card {
+                padding: 12px;
+            }
+            
+            .chart-container {
+                height: 200px !important;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px;
+            }
+            
+            .mining-stats {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px;
+            }
+            
+            .mining-card {
+                padding: 12px;
+            }
+            
+            .mining-icon {
+                font-size: 20px;
+            }
+            
+            .mining-label {
+                font-size: 11px;
+            }
+            
+            .mining-value {
+                font-size: 14px;
+            }
+            
+            .wallet-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .transaction-card {
+                padding: 15px;
+            }
+            
+            .transaction-title {
+                font-size: 16px;
+            }
+            
+            .transaction-warning {
+                font-size: 11px;
+            }
+            
+            .transaction-input {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .transaction-btn {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .preview-box {
+                padding: 8px;
+            }
+            
+            .preview-label {
+                font-size: 11px;
+            }
+            
+            .preview-amount {
+                font-size: 13px;
+            }
+            
+            .leaderboard-table {
+                font-size: 11px;
+            }
+            
+            .leaderboard-table th,
+            .leaderboard-table td {
+                padding: 8px 4px;
+            }
+            
+            .leaderboard-table td .scam-with-logo img {
+                height: 12px;
+            }
+            
+            .modal-content {
+                width: 85%;
+                margin: 30% auto;
+                padding: 25px;
+            }
+            
+            .modal-content h2 {
+                font-size: 1.3rem;
+            }
+            
+            .modal-content p {
+                font-size: 13px;
+            }
+            
+            .modal-btn {
+                padding: 8px 20px;
+                font-size: 13px;
+            }
+            
+            .user-wallet-info {
+                padding: 8px 12px;
+            }
+            
+            .user-wallet-name {
+                font-size: 12px;
+            }
+            
+            .user-wallet-balance {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .mining-stats {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .chart-controls {
+                justify-content: center;
+            }
+            
+            .leaderboard-table th,
+            .leaderboard-table td {
+                font-size: 9px;
+                padding: 6px 2px;
+            }
+            
+            .leaderboard-table td .scam-with-logo img {
+                height: 10px;
+            }
+            
+            .crypto-title .scam-with-logo img {
+                height: 24px;
+            }
+            
+            .modal-content {
+                margin: 50% auto;
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -376,7 +561,6 @@
                     <button class="chart-btn" data-period="12h" role="tab" aria-selected="false" id="tab-12h">12 годин</button>
                     <button class="chart-btn" data-period="24h" role="tab" aria-selected="false" id="tab-24h">24 години</button>
                     <button class="chart-btn" data-period="7d" role="tab" aria-selected="false" id="tab-7d">7 днів</button>
-                    <button class="chart-btn" data-period="30d" role="tab" aria-selected="false" id="tab-30d">30 днів</button>
                 </div>
 
                 <div class="chart-card">

@@ -166,10 +166,6 @@
             transition: background 0.2s;
         }
         
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-        
         .suggestion-item:hover {
             background: #2a2f36;
         }
@@ -194,11 +190,6 @@
             font-size: 1rem;
             margin-bottom: 20px;
             box-sizing: border-box;
-        }
-        
-        .amount-input:focus {
-            outline: none;
-            border-color: #e6b422;
         }
         
         .transfer-btn {
@@ -357,18 +348,12 @@
             border-top: 1px solid #2a2f36;
             margin-top: 60px;
         }
-
+        
         .search-hint {
             color: #9ca3af;
             font-size: 0.8rem;
             margin-top: 8px;
             display: block;
-        }
-
-        .loading-suggestions {
-            padding: 12px 16px;
-            color: #9ca3af;
-            text-align: center;
         }
         
         .selected-user-info {
@@ -385,10 +370,6 @@
             display: block;
         }
         
-        .selected-user-info i {
-            margin-right: 8px;
-        }
-        
         .scam-with-logo {
             display: inline-flex;
             align-items: center;
@@ -401,14 +382,14 @@
         }
         
         @media (max-width: 768px) {
-            .profile-info {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
             .balance-grid {
                 grid-template-columns: 1fr;
                 gap: 15px;
+            }
+            
+            .profile-info {
+                grid-template-columns: 1fr;
+                gap: 10px;
             }
             
             .transaction-item {
@@ -565,64 +546,41 @@
             let transferType = 'usd';
             let selectedRecipient = null;
             let searchTimeout = null;
-            let currentPrice = 0.05;
             
-            // Отримання поточної ціни SCAM
-            async function getCurrentPrice() {
+            // Функция для записи транзакции
+            async function addTransaction(userId, senderId, recipientId, type, amount, currency, amountUsd, amountScam, details) {
                 try {
+                    const transaction = {
+                        user_id: userId,
+                        sender_id: senderId || null,
+                        recipient_id: recipientId || null,
+                        type: type,
+                        amount: amount,
+                        currency: currency,
+                        amount_usd: amountUsd || null,
+                        amount_scam: amountScam || null,
+                        details: details || '',
+                        created_at: new Date().toISOString()
+                    };
+                    
                     const { data, error } = await supabase
-                        .from('users')
-                        .select('scam_balance');
+                        .from('transactions')
+                        .insert([transaction]);
                     
-                    if (error) throw error;
-                    
-                    const totalSupply = data.reduce((sum, user) => sum + (parseFloat(user.scam_balance) || 0), 0);
-                    currentPrice = 0.05 + (totalSupply * 0.001);
-                    currentPrice = Math.round(currentPrice * 1000) / 1000;
-                    
-                    return currentPrice;
-                } catch (error) {
-                    console.error('Помилка отримання ціни:', error);
-                    return 0.05;
-                }
-            }
-            
-            // Завантаження даних користувача
-            async function loadUserData() {
-                try {
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', currentUser.id)
-                        .single();
-                    
-                    if (error) throw error;
-                    
-                    if (data) {
-                        currentUser = data;
-                        localStorage.setItem('currentUser', JSON.stringify(data));
-                        
-                        // Оновлюємо баланси
-                        document.getElementById('usdBalance').textContent = `$${parseFloat(data.balance).toFixed(2)}`;
-                        document.getElementById('scamBalance').innerHTML = `${(data.scam_balance || 0).toFixed(3)} <small>SCAM</small>`;
-                        
-                        // Оновлюємо профіль
-                        document.getElementById('profileFirstName').textContent = data.first_name;
-                        document.getElementById('profileLastName').textContent = data.last_name;
-                        document.getElementById('profileEmail').textContent = data.email;
-                        
-                        // Оновлюємо кнопку в хедері
-                        const accountBtnText = document.getElementById('accountBtnText');
-                        if (accountBtnText) {
-                            accountBtnText.textContent = data.first_name;
-                        }
+                    if (error) {
+                        console.error('Ошибка записи транзакции:', error);
+                        return false;
                     }
+                    
+                    console.log('Транзакция записана:', type, amount, currency);
+                    return true;
                 } catch (error) {
-                    console.error('Помилка завантаження даних:', error);
+                    console.error('Ошибка:', error);
+                    return false;
                 }
             }
             
-            // Завантаження історії транзакцій
+            // Функция для загрузки истории транзакций
             async function loadTransactions() {
                 try {
                     const { data, error } = await supabase
@@ -632,7 +590,10 @@
                         .order('created_at', { ascending: false })
                         .limit(50);
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Ошибка загрузки транзакций:', error);
+                        return;
+                    }
                     
                     const container = document.getElementById('transactionsHistory');
                     if (!container) return;
@@ -657,7 +618,6 @@
                         const item = document.createElement('div');
                         item.className = 'transaction-item';
                         
-                        // Визначаємо тип транзакції
                         let typeClass = '';
                         let typeIcon = '';
                         
@@ -681,7 +641,6 @@
                         item.classList.add(typeClass);
                         
                         let amountDisplay = '';
-                        let detailsDisplay = '';
                         
                         if (tx.currency === 'USD') {
                             amountDisplay = `$${parseFloat(tx.amount).toFixed(2)} USD`;
@@ -691,8 +650,9 @@
                             amountDisplay = `${tx.amount} ${tx.currency || ''}`;
                         }
                         
+                        let detailsHtml = '';
                         if (tx.details) {
-                            detailsDisplay = `<small>${tx.details}</small>`;
+                            detailsHtml = `<small>${tx.details}</small>`;
                         }
                         
                         item.innerHTML = `
@@ -702,7 +662,7 @@
                             </div>
                             <div class="tx-amount">
                                 ${amountDisplay}
-                                ${detailsDisplay}
+                                ${detailsHtml}
                             </div>
                         `;
                         container.appendChild(item);
@@ -712,7 +672,38 @@
                 }
             }
             
-            // Пошук користувачів
+            // Загрузка данных пользователя
+            async function loadUserData() {
+                try {
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', currentUser.id)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (data) {
+                        currentUser = data;
+                        localStorage.setItem('currentUser', JSON.stringify(data));
+                        
+                        document.getElementById('usdBalance').textContent = `$${parseFloat(data.balance || 0).toFixed(2)}`;
+                        document.getElementById('scamBalance').innerHTML = `${(data.scam_balance || 0).toFixed(3)} <small>SCAM</small>`;
+                        document.getElementById('profileFirstName').textContent = data.first_name;
+                        document.getElementById('profileLastName').textContent = data.last_name;
+                        document.getElementById('profileEmail').textContent = data.email || 'не вказано';
+                        
+                        const accountBtnText = document.getElementById('accountBtnText');
+                        if (accountBtnText) {
+                            accountBtnText.textContent = data.first_name;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Помилка завантаження даних:', error);
+                }
+            }
+            
+            // Поиск пользователей
             const searchInput = document.getElementById('searchInput');
             const suggestionsDiv = document.getElementById('suggestions');
             const selectedUserInfo = document.getElementById('selectedUserInfo');
@@ -720,9 +711,7 @@
             searchInput.addEventListener('input', function() {
                 const query = this.value.trim();
                 
-                if (searchTimeout) {
-                    clearTimeout(searchTimeout);
-                }
+                if (searchTimeout) clearTimeout(searchTimeout);
                 
                 if (query.length < 2) {
                     suggestionsDiv.classList.remove('show');
@@ -731,7 +720,7 @@
                     return;
                 }
                 
-                suggestionsDiv.innerHTML = '<div class="loading-suggestions"><i class="fas fa-spinner fa-spin"></i> Пошук...</div>';
+                suggestionsDiv.innerHTML = '<div class="suggestion-item"><i class="fas fa-spinner fa-spin"></i> Пошук...</div>';
                 suggestionsDiv.classList.add('show');
                 
                 searchTimeout = setTimeout(async () => {
@@ -740,7 +729,7 @@
                             .from('users')
                             .select('id, first_name, last_name, email')
                             .neq('id', currentUser.id)
-                            .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
+                            .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
                             .limit(10);
                         
                         suggestionsDiv.innerHTML = '';
@@ -755,7 +744,7 @@
                                 div.innerHTML = `
                                     <i class="fas fa-user-circle"></i>
                                     <strong>${fullName}</strong>
-                                    <small>${user.email}</small>
+                                    <small>${user.email || ''}</small>
                                 `;
                                 div.addEventListener('click', () => {
                                     selectedRecipient = user;
@@ -763,7 +752,7 @@
                                     selectedUserInfo.innerHTML = `
                                         <i class="fas fa-check-circle"></i> 
                                         Отримувач: <strong>${fullName}</strong>
-                                        <span style="color: #6b7280; margin-left: 10px;">${user.email}</span>
+                                        <span style="color: #6b7280; margin-left: 10px;">${user.email || ''}</span>
                                     `;
                                     selectedUserInfo.classList.add('show');
                                     suggestionsDiv.classList.remove('show');
@@ -780,14 +769,13 @@
                 }, 500);
             });
             
-            // Закриття підказок при кліку поза
             document.addEventListener('click', function(e) {
                 if (!e.target.closest('.search-container')) {
                     suggestionsDiv.classList.remove('show');
                 }
             });
             
-            // Перемикання типів переказу
+            // Переключение типов перевода
             document.getElementById('tabUsd').addEventListener('click', function() {
                 transferType = 'usd';
                 document.getElementById('tabUsd').classList.add('active');
@@ -804,7 +792,7 @@
                 document.getElementById('amountInput').step = '0.001';
             });
             
-            // Обробка переказу
+            // Обработка перевода
             async function handleTransfer() {
                 const amount = parseFloat(document.getElementById('amountInput').value);
                 const resultDiv = document.getElementById('transferResult');
@@ -812,6 +800,7 @@
                 if (!selectedRecipient) {
                     resultDiv.innerHTML = '❌ Виберіть отримувача зі списку';
                     resultDiv.className = 'transfer-result error';
+                    resultDiv.style.display = 'block';
                     setTimeout(() => {
                         resultDiv.style.display = 'none';
                         resultDiv.className = 'transfer-result';
@@ -822,6 +811,7 @@
                 if (isNaN(amount) || amount <= 0) {
                     resultDiv.innerHTML = '❌ Введіть правильну суму';
                     resultDiv.className = 'transfer-result error';
+                    resultDiv.style.display = 'block';
                     setTimeout(() => {
                         resultDiv.style.display = 'none';
                         resultDiv.className = 'transfer-result';
@@ -829,11 +819,12 @@
                     return;
                 }
                 
-                // Перевірка достатності коштів
+                // Проверка достаточности средств
                 if (transferType === 'usd') {
                     if (amount > parseFloat(currentUser.balance)) {
                         resultDiv.innerHTML = `❌ Недостатньо USD. Ваш баланс: $${parseFloat(currentUser.balance).toFixed(2)}`;
                         resultDiv.className = 'transfer-result error';
+                        resultDiv.style.display = 'block';
                         setTimeout(() => {
                             resultDiv.style.display = 'none';
                             resultDiv.className = 'transfer-result';
@@ -841,9 +832,10 @@
                         return;
                     }
                 } else {
-                    if (amount > parseFloat(currentUser.scam_balance)) {
+                    if (amount > parseFloat(currentUser.scam_balance || 0)) {
                         resultDiv.innerHTML = `❌ Недостатньо SCAM. Ваш баланс: ${(currentUser.scam_balance || 0).toFixed(3)} SCAM`;
                         resultDiv.className = 'transfer-result error';
+                        resultDiv.style.display = 'block';
                         setTimeout(() => {
                             resultDiv.style.display = 'none';
                             resultDiv.className = 'transfer-result';
@@ -857,7 +849,7 @@
                 transferBtn.textContent = 'Відправка...';
                 
                 try {
-                    // Отримуємо актуальні дані отримувача
+                    // Получаем актуальные данные получателя
                     const { data: recipient, error: recipientError } = await supabase
                         .from('users')
                         .select('*')
@@ -867,7 +859,7 @@
                     if (recipientError) throw recipientError;
                     
                     if (transferType === 'usd') {
-                        // Списуємо USD у відправника
+                        // Списываем USD у отправителя
                         const { error: sendError } = await supabase
                             .from('users')
                             .update({ balance: parseFloat(currentUser.balance) - amount })
@@ -875,7 +867,7 @@
                         
                         if (sendError) throw sendError;
                         
-                        // Додаємо USD отримувачу
+                        // Добавляем USD получателю
                         const { error: receiveError } = await supabase
                             .from('users')
                             .update({ balance: parseFloat(recipient.balance) + amount })
@@ -883,82 +875,87 @@
                         
                         if (receiveError) throw receiveError;
                         
-                        // Записуємо транзакцію для відправника
-                        await supabase.from('transactions').insert([{
-                            user_id: currentUser.id,
-                            sender_id: currentUser.id,
-                            recipient_id: recipient.id,
-                            type: 'Переказ',
-                            amount: amount,
-                            currency: 'USD',
-                            amount_usd: amount,
-                            details: `Переказ $${amount.toFixed(2)} користувачу ${recipient.first_name} ${recipient.last_name}`
-                        }]);
+                        // Записываем транзакцию для отправителя
+                        await addTransaction(
+                            currentUser.id, 
+                            currentUser.id, 
+                            recipient.id, 
+                            'Переказ', 
+                            amount, 
+                            'USD', 
+                            amount, 
+                            null,
+                            `Переказ $${amount.toFixed(2)} користувачу ${recipient.first_name} ${recipient.last_name}`
+                        );
                         
-                        // Записуємо транзакцію для отримувача
-                        await supabase.from('transactions').insert([{
-                            user_id: recipient.id,
-                            sender_id: currentUser.id,
-                            recipient_id: recipient.id,
-                            type: 'Отримання',
-                            amount: amount,
-                            currency: 'USD',
-                            amount_usd: amount,
-                            details: `Отримано $${amount.toFixed(2)} від ${currentUser.first_name} ${currentUser.last_name}`
-                        }]);
+                        // Записываем транзакцию для получателя
+                        await addTransaction(
+                            recipient.id, 
+                            currentUser.id, 
+                            recipient.id, 
+                            'Отримання', 
+                            amount, 
+                            'USD', 
+                            amount, 
+                            null,
+                            `Отримано $${amount.toFixed(2)} від ${currentUser.first_name} ${currentUser.last_name}`
+                        );
                         
                     } else {
-                        // Списуємо SCAM у відправника
+                        // Списываем SCAM у отправителя
                         const { error: sendError } = await supabase
                             .from('users')
-                            .update({ scam_balance: parseFloat(currentUser.scam_balance) - amount })
+                            .update({ scam_balance: parseFloat(currentUser.scam_balance || 0) - amount })
                             .eq('id', currentUser.id);
                         
                         if (sendError) throw sendError;
                         
-                        // Додаємо SCAM отримувачу
+                        // Добавляем SCAM получателю
                         const { error: receiveError } = await supabase
                             .from('users')
-                            .update({ scam_balance: parseFloat(recipient.scam_balance) + amount })
+                            .update({ scam_balance: parseFloat(recipient.scam_balance || 0) + amount })
                             .eq('id', recipient.id);
                         
                         if (receiveError) throw receiveError;
                         
-                        // Записуємо транзакцію для відправника
-                        await supabase.from('transactions').insert([{
-                            user_id: currentUser.id,
-                            sender_id: currentUser.id,
-                            recipient_id: recipient.id,
-                            type: 'Переказ',
-                            amount: amount,
-                            currency: 'SCAM',
-                            amount_scam: amount,
-                            details: `Переказ ${amount.toFixed(3)} SCAM користувачу ${recipient.first_name} ${recipient.last_name}`
-                        }]);
+                        // Записываем транзакцию для отправителя
+                        await addTransaction(
+                            currentUser.id, 
+                            currentUser.id, 
+                            recipient.id, 
+                            'Переказ', 
+                            amount, 
+                            'SCAM', 
+                            null, 
+                            amount,
+                            `Переказ ${amount.toFixed(3)} SCAM користувачу ${recipient.first_name} ${recipient.last_name}`
+                        );
                         
-                        // Записуємо транзакцію для отримувача
-                        await supabase.from('transactions').insert([{
-                            user_id: recipient.id,
-                            sender_id: currentUser.id,
-                            recipient_id: recipient.id,
-                            type: 'Отримання',
-                            amount: amount,
-                            currency: 'SCAM',
-                            amount_scam: amount,
-                            details: `Отримано ${amount.toFixed(3)} SCAM від ${currentUser.first_name} ${currentUser.last_name}`
-                        }]);
+                        // Записываем транзакцию для получателя
+                        await addTransaction(
+                            recipient.id, 
+                            currentUser.id, 
+                            recipient.id, 
+                            'Отримання', 
+                            amount, 
+                            'SCAM', 
+                            null, 
+                            amount,
+                            `Отримано ${amount.toFixed(3)} SCAM від ${currentUser.first_name} ${currentUser.last_name}`
+                        );
                     }
                     
                     resultDiv.innerHTML = '✅ Переказ успішний!';
                     resultDiv.className = 'transfer-result success';
+                    resultDiv.style.display = 'block';
                     
-                    // Очищаємо форму
+                    // Очищаем форму
                     searchInput.value = '';
                     selectedRecipient = null;
                     selectedUserInfo.classList.remove('show');
                     document.getElementById('amountInput').value = '';
                     
-                    // Оновлюємо дані
+                    // Обновляем данные
                     await loadUserData();
                     await loadTransactions();
                     
@@ -971,6 +968,7 @@
                     console.error('Помилка переказу:', error);
                     resultDiv.innerHTML = '❌ Помилка: ' + (error.message || 'Спробуйте пізніше');
                     resultDiv.className = 'transfer-result error';
+                    resultDiv.style.display = 'block';
                     setTimeout(() => {
                         resultDiv.style.display = 'none';
                         resultDiv.className = 'transfer-result';
@@ -983,21 +981,20 @@
             
             document.getElementById('transferBtn').addEventListener('click', handleTransfer);
             
-            // Обробка Enter в полі суми
             document.getElementById('amountInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     handleTransfer();
                 }
             });
             
-            // Вихід з акаунту
+            // Выход из аккаунта
             document.getElementById('logoutBtn').addEventListener('click', function(e) {
                 e.preventDefault();
                 localStorage.removeItem('currentUser');
                 window.location.href = 'index.html';
             });
             
-            // Кнопка кабінету в хедері
+            // Кнопка кабинета в хедере
             const accountBtn = document.getElementById('accountBtn');
             if (accountBtn) {
                 accountBtn.addEventListener('click', function(e) {
@@ -1011,9 +1008,15 @@
                 });
             }
             
-            // Ініціалізація
+            // Инициализация
             loadUserData();
             loadTransactions();
+            
+            // Обновление каждые 30 секунд
+            setInterval(() => {
+                loadUserData();
+                loadTransactions();
+            }, 30000);
         });
     </script>
 </body>
