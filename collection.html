@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя колекція | Misha Corporation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .collection-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .balance-badge {
+            background: #1e2126;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            text-align: center;
+            width: fit-content;
+            margin: 0 auto 20px auto;
+        }
+        .balance-badge span {
+            color: #e6b422;
+            font-weight: bold;
+        }
+        .coin-card {
+            background: #111316;
+            border: 1px solid #2a2f36;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            transition: 0.2s;
+        }
+        .coin-card:hover {
+            border-color: #e6b422;
+            transform: translateY(-3px);
+        }
+        .coin-image {
+            width: 100px;
+            height: 100px;
+            background: #1e2126;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .coin-image img {
+            width: 80%;
+            height: auto;
+        }
+        .coin-info {
+            flex: 1;
+        }
+        .coin-name {
+            font-size: 1.5rem;
+            color: #e6b422;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .coin-quantity {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+        .coin-quantity span {
+            color: #e6b422;
+            font-weight: bold;
+        }
+        .list-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .list-input {
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #fff;
+            width: 130px;
+        }
+        .list-btn {
+            background: #e6b422;
+            color: #0a0c0f;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .list-btn:hover:not(:disabled) {
+            background: #ffd966;
+        }
+        .list-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .empty-collection {
+            text-align: center;
+            padding: 60px 20px;
+            background: #111316;
+            border-radius: 20px;
+            color: #6b7280;
+        }
+        .message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+        .message.success {
+            display: block;
+            background: rgba(16,185,129,0.1);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+        .message.error {
+            display: block;
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #111316;
+            border-left: 4px solid #e6b422;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 2000;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) {
+            .coin-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .list-form {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <div class="gold-bar"></div>
+                <span class="logo-text">Misha Corporation</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="index.html">Головна</a></li>
+                    <li><a href="crypto.html" class="crypto-nav-link">₿ Крипта</a></li>
+                    <li><a href="about.html">Про нас</a></li>
+                    <li><a href="contacts.html">Контакти</a></li>
+                </ul>
+            </nav>
+            <div class="account-header-btn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1 class="page-title" style="margin-top: 20px;">Моя колекція</h1>
+            <div class="balance-badge" id="balanceBadge">
+                <i class="fas fa-dollar-sign"></i> Ваш USD: <span>$0.00</span>
+            </div>
+            <div class="collection-container" id="collectionContainer">
+                <div class="loading">Завантаження...</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toastMessage" class="toast-message"></div>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-left">Misha Corporation © 2026</div>
+            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
+            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            let currentUser = null;
+
+            async function checkAuth() {
+                const saved = localStorage.getItem('currentUser');
+                if (!saved) {
+                    window.location.href = 'register.html';
+                    return false;
+                }
+                try {
+                    const user = JSON.parse(saved);
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    if (error || !data) {
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'register.html';
+                        return false;
+                    }
+                    currentUser = data;
+                    document.getElementById('accountBtnText').textContent = currentUser.first_name || 'Кабінет';
+                    document.getElementById('balanceBadge').innerHTML = `<i class="fas fa-dollar-sign"></i> Ваш USD: <span>$${currentUser.balance.toFixed(2)}</span>`;
+                    return true;
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'register.html';
+                    return false;
+                }
+            }
+
+            function showToast(message, isError = false) {
+                const toast = document.getElementById('toastMessage');
+                toast.textContent = message;
+                toast.style.backgroundColor = isError ? 'rgba(239,68,68,0.9)' : '#111316';
+                toast.style.borderLeftColor = isError ? '#ef4444' : '#e6b422';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 4000);
+            }
+
+            function showMessage(element, text, type) {
+                element.textContent = text;
+                element.className = `message ${type}`;
+                setTimeout(() => {
+                    element.style.display = 'none';
+                    element.className = 'message';
+                }, 3000);
+            }
+
+            async function loadCollection() {
+                const container = document.getElementById('collectionContainer');
+                if (!currentUser) return;
+
+                const { data, error } = await supabase
+                    .from('collections')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+
+                if (error) {
+                    container.innerHTML = '<div class="empty-collection">Помилка завантаження колекції</div>';
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-collection">✨ У вас ще немає колекційних монет. Завітайте в <strong>Івент</strong>, щоб придбати Вітасік Coin!</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                for (let item of data) {
+                    const coinCard = document.createElement('div');
+                    coinCard.className = 'coin-card';
+                    coinCard.innerHTML = `
+                        <div class="coin-image">
+                            <img src="витасик.png" alt="${item.coin_type}" onerror="this.src='https://via.placeholder.com/80?text=Coin'">
+                        </div>
+                        <div class="coin-info">
+                            <div class="coin-name">${escapeHtml(item.coin_type)}</div>
+                            <div class="coin-quantity">Кількість: <span id="qty-${item.coin_type.replace(/\s/g, '')}">${item.quantity}</span></div>
+                            <div class="list-form">
+                                <input type="number" class="list-input" id="price-${item.coin_type.replace(/\s/g, '')}" placeholder="Ціна USD" step="0.01" min="0.01">
+                                <input type="number" class="list-input" id="qtyInput-${item.coin_type.replace(/\s/g, '')}" placeholder="Кількість" value="1" min="1" max="${item.quantity}">
+                                <button class="list-btn" data-coin="${item.coin_type}" data-max="${item.quantity}">Виставити на барахолку</button>
+                            </div>
+                            <div id="msg-${item.coin_type.replace(/\s/g, '')}" class="message"></div>
+                        </div>
+                    `;
+                    container.appendChild(coinCard);
+                }
+
+                // Додаємо обробники для кнопок
+                document.querySelectorAll('.list-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const coinType = btn.dataset.coin;
+                        const maxQty = parseInt(btn.dataset.max);
+                        const safeKey = coinType.replace(/\s/g, '');
+                        const priceInput = document.getElementById(`price-${safeKey}`);
+                        const qtyInput = document.getElementById(`qtyInput-${safeKey}`);
+                        const price = parseFloat(priceInput.value);
+                        let qty = parseInt(qtyInput.value);
+                        const msgDiv = document.getElementById(`msg-${safeKey}`);
+
+                        if (isNaN(price) || price <= 0) {
+                            showMessage(msgDiv, '❌ Введіть коректну ціну (>0)', 'error');
+                            return;
+                        }
+                        if (isNaN(qty) || qty <= 0) qty = 1;
+                        if (qty > maxQty) {
+                            showMessage(msgDiv, `❌ Недостатньо монет. Доступно: ${maxQty}`, 'error');
+                            return;
+                        }
+
+                        btn.disabled = true;
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Обробка...';
+
+                        try {
+                            // 1. Зменшуємо кількість у колекції
+                            const newQty = maxQty - qty;
+                            if (newQty === 0) {
+                                await supabase
+                                    .from('collections')
+                                    .delete()
+                                    .eq('user_id', currentUser.id)
+                                    .eq('coin_type', coinType);
+                            } else {
+                                await supabase
+                                    .from('collections')
+                                    .update({ quantity: newQty, updated_at: new Date().toISOString() })
+                                    .eq('user_id', currentUser.id)
+                                    .eq('coin_type', coinType);
+                                document.getElementById(`qty-${safeKey}`).textContent = newQty;
+                            }
+
+                            // 2. Створюємо оголошення на барахолці
+                            const { error: insertError } = await supabase
+                                .from('flea_market_listings')
+                                .insert({
+                                    seller_id: currentUser.id,
+                                    coin_type: coinType,
+                                    price_usd: price,
+                                    quantity_available: qty,
+                                    status: 'active',
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                });
+
+                            if (insertError) throw insertError;
+
+                            showMessage(msgDiv, `✅ Виставлено ${qty} шт. ${coinType} за $${price} кожен`, 'success');
+                            showToast(`✅ Виставлено ${qty} ${coinType} на барахолку!`);
+
+                            // Якщо кількість стала 0 – видаляємо картку або оновлюємо сторінку
+                            if (newQty === 0) {
+                                setTimeout(() => loadCollection(), 1500);
+                            } else {
+                                btn.dataset.max = newQty;
+                                const qtyInputField = document.getElementById(`qtyInput-${safeKey}`);
+                                if (qtyInputField) qtyInputField.max = newQty;
+                            }
+                        } catch (error) {
+                            console.error('Помилка виставлення:', error);
+                            showMessage(msgDiv, `❌ Помилка: ${error.message}`, 'error');
+                        } finally {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }
+                    });
+                });
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+
+            // Ініціалізація
+            document.addEventListener('DOMContentLoaded', async () => {
+                const authed = await checkAuth();
+                if (authed) {
+                    await loadCollection();
+                }
+
+                // Кнопка акаунта в хедері
+                const accountBtn = document.getElementById('accountBtn');
+                if (accountBtn) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.location.href = 'dashboard.html';
+                    });
+                }
+
+                // Вихід
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'index.html';
+                    });
+                }
+
+                // Випадаюче меню
+                const dropdown = document.getElementById('accountDropdown');
+                if (accountBtn && dropdown) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        dropdown.classList.toggle('show');
+                    });
+                    document.addEventListener('click', () => {
+                        dropdown.classList.remove('show');
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

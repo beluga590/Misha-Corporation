@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Барахолка | Misha Corporation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #0a0c0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin: 30px 0 20px;
+            border-bottom: 1px solid #2a2f36;
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 8px 20px;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #e6b422;
+            color: #0a0c0f;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        .listing-card {
+            background: #111316;
+            border: 1px solid #2a2f36;
+            border-radius: 16px;
+            padding: 20px;
+            transition: 0.2s;
+        }
+        .listing-card:hover {
+            transform: translateY(-3px);
+        }
+        .listing-card.own-listing {
+            border-color: #e6b422;
+            background: #1a1a1a;
+        }
+        .listing-coin {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .listing-coin img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #1e2126;
+            object-fit: contain;
+        }
+        .listing-coin h3 {
+            color: #e6b422;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+        .listing-details {
+            margin: 16px 0;
+        }
+        .price {
+            font-size: 1.2rem;
+            color: #fff;
+        }
+        .price span {
+            color: #e6b422;
+            font-weight: bold;
+        }
+        .quantity {
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+        .seller {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+        .buy-btn {
+            width: 100%;
+            background: #e6b422;
+            color: #0a0c0f;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: 0.2s;
+        }
+        .buy-btn:hover:not(:disabled) {
+            background: #ffd966;
+        }
+        .buy-btn:disabled {
+            background: #2a2f36;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #111316;
+            padding: 12px 20px;
+            border-radius: 60px;
+            border: 1px solid #2a2f36;
+        }
+        .filter-select {
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .no-listings {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+            background: #111316;
+            border-radius: 16px;
+        }
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #111316;
+            border-left: 4px solid #e6b422;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 2000;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .balance-badge {
+            background: #1e2126;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            margin-left: auto;
+        }
+        .balance-badge span {
+            color: #e6b422;
+            font-weight: bold;
+        }
+        
+        .sell-form {
+            background: #111316;
+            border: 1px solid #2a2f36;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+        .form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+        .form-group label {
+            display: block;
+            color: #9ca3af;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            border-radius: 8px;
+            color: #fff;
+        }
+        .list-btn {
+            background: #e6b422;
+            color: #0a0c0f;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .list-btn:hover:not(:disabled) {
+            background: #ffd966;
+        }
+        .list-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .collection-preview {
+            margin-top: 16px;
+            padding: 12px;
+            background: #1e2126;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+        .collection-preview span {
+            color: #e6b422;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .listings-grid { grid-template-columns: 1fr; }
+            .form-row { flex-direction: column; }
+            .list-btn { width: 100%; margin-top: 10px; }
+            .filter-bar { border-radius: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <div class="gold-bar"></div>
+                <span class="logo-text">Misha Corporation</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="index.html">Головна</a></li>
+                    <li><a href="crypto.html" class="crypto-nav-link">₿ Крипта</a></li>
+                    <li><a href="about.html">Про нас</a></li>
+                    <li><a href="contacts.html">Контакти</a></li>
+                </ul>
+            </nav>
+            <div class="account-header-btn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1 class="page-title" style="margin-top: 20px;">Барахолка</h1>
+            <div class="balance-badge" id="balanceBadge" style="float: right; margin-top: -50px;">Ваш USD: <span>$0.00</span></div>
+            <div style="clear: both;"></div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="buy">📦 Купити</button>
+                <button class="tab-btn" data-tab="sell">💰 Продати (виставити монету)</button>
+            </div>
+            
+            <!-- Вкладка "Купити" -->
+            <div id="buyTab" class="tab-content active">
+                <div class="filter-bar">
+                    <span><i class="fas fa-filter"></i> Фільтр:</span>
+                    <select id="coinFilter" class="filter-select">
+                        <option value="all">Всі монети</option>
+                        <option value="Вітасік Coin">Вітасік Coin</option>
+                    </select>
+                </div>
+                <div id="listingsContainer" class="listings-grid">
+                    <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Завантаження...</div>
+                </div>
+            </div>
+            
+            <!-- Вкладка "Продати" -->
+            <div id="sellTab" class="tab-content">
+                <div class="sell-form">
+                    <h3 style="color: #e6b422; margin-bottom: 20px;">Виставити монету на продаж</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Монета</label>
+                            <select id="sellCoinType" class="form-select">
+                                <option value="Вітасік Coin">Вітасік Coin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Кількість</label>
+                            <input type="number" id="sellQuantity" class="form-input" value="1" min="1" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Ціна за 1 шт (USD)</label>
+                            <input type="number" id="sellPrice" class="form-input" value="350.00" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <button id="createListingBtn" class="list-btn">Виставити на барахолку</button>
+                        </div>
+                    </div>
+                    <div id="collectionInfo" class="collection-preview">
+                        Завантаження вашої колекції...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toastMessage" class="toast-message"></div>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-left">Misha Corporation © 2026</div>
+            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
+            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // ==================== КОНФІГУРАЦІЯ ====================
+            const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            let currentUser = null;
+            let currentFilter = 'all';
+            let userCollections = [];
+            
+            // ==================== АВТОРИЗАЦІЯ ====================
+            async function checkAuth() {
+                const saved = localStorage.getItem('currentUser');
+                if (!saved) {
+                    window.location.href = 'register.html';
+                    return false;
+                }
+                try {
+                    const user = JSON.parse(saved);
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (error || !data) {
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'register.html';
+                        return false;
+                    }
+                    currentUser = data;
+                    document.getElementById('accountBtnText').textContent = currentUser.first_name || 'Кабінет';
+                    document.getElementById('balanceBadge').innerHTML = `Ваш USD: <span>$${currentUser.balance.toFixed(2)}</span>`;
+                    return true;
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'register.html';
+                    return false;
+                }
+            }
+            
+            // ==================== ПОВІДОМЛЕННЯ ====================
+            function showToast(message, isError = false) {
+                const toast = document.getElementById('toastMessage');
+                toast.textContent = message;
+                toast.style.backgroundColor = isError ? 'rgba(239,68,68,0.9)' : '#111316';
+                toast.style.borderLeftColor = isError ? '#ef4444' : '#e6b422';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 4000);
+            }
+            
+            // ==================== ЗАВАНТАЖЕННЯ КОЛЕКЦІЇ ====================
+            async function loadUserCollection() {
+                const { data, error } = await supabase
+                    .from('collections')
+                    .select('coin_type, quantity')
+                    .eq('user_id', currentUser.id);
+                
+                if (error) {
+                    console.error('Collection load error:', error);
+                    document.getElementById('collectionInfo').innerHTML = 'Помилка завантаження колекції';
+                    return;
+                }
+                userCollections = data || [];
+                updateCollectionDisplay();
+            }
+            
+            function updateCollectionDisplay() {
+                const container = document.getElementById('collectionInfo');
+                if (!userCollections.length) {
+                    container.innerHTML = 'У вас немає колекційних монет. Спочатку придбайте Вітасік Coin в івенті.';
+                    document.getElementById('createListingBtn').disabled = true;
+                    return;
+                }
+                let html = 'Ваша колекція:<br>';
+                userCollections.forEach(c => {
+                    html += `<span>${c.coin_type}: ${c.quantity} шт</span><br>`;
+                });
+                container.innerHTML = html;
+                document.getElementById('createListingBtn').disabled = false;
+                
+                const select = document.getElementById('sellCoinType');
+                select.innerHTML = '';
+                userCollections.forEach(c => {
+                    if (c.quantity > 0) {
+                        const option = document.createElement('option');
+                        option.value = c.coin_type;
+                        option.textContent = `${c.coin_type} (доступно: ${c.quantity})`;
+                        select.appendChild(option);
+                    }
+                });
+                if (select.options.length === 0) {
+                    select.innerHTML = '<option disabled>Немає монет для продажу</option>';
+                    document.getElementById('createListingBtn').disabled = true;
+                }
+            }
+            
+            // ==================== СТВОРЕННЯ ОГОЛОШЕННЯ ====================
+            async function createListing() {
+                const select = document.getElementById('sellCoinType');
+                const selectedOption = select.options[select.selectedIndex];
+                if (!selectedOption || selectedOption.disabled) {
+                    showToast('Виберіть монету для продажу', true);
+                    return;
+                }
+                const coinType = selectedOption.value;
+                let quantity = parseInt(document.getElementById('sellQuantity').value);
+                const price = parseFloat(document.getElementById('sellPrice').value);
+                
+                if (isNaN(quantity) || quantity < 1) quantity = 1;
+                if (isNaN(price) || price <= 0) {
+                    showToast('Введіть коректну ціну (>0)', true);
+                    return;
+                }
+                
+                const collectionItem = userCollections.find(c => c.coin_type === coinType);
+                if (!collectionItem || collectionItem.quantity < quantity) {
+                    showToast(`Недостатньо монет. Доступно: ${collectionItem?.quantity || 0}`, true);
+                    return;
+                }
+                
+                const listBtn = document.getElementById('createListingBtn');
+                listBtn.disabled = true;
+                listBtn.textContent = 'Обробка...';
+                
+                try {
+                    // 1. Зменшуємо кількість у колекції
+                    const newQty = collectionItem.quantity - quantity;
+                    if (newQty === 0) {
+                        await supabase
+                            .from('collections')
+                            .delete()
+                            .eq('user_id', currentUser.id)
+                            .eq('coin_type', coinType);
+                    } else {
+                        await supabase
+                            .from('collections')
+                            .update({ quantity: newQty, updated_at: new Date().toISOString() })
+                            .eq('user_id', currentUser.id)
+                            .eq('coin_type', coinType);
+                    }
+                    
+                    // 2. Створюємо оголошення
+                    const { error: insertError } = await supabase
+                        .from('flea_market_listings')
+                        .insert({
+                            seller_id: currentUser.id,
+                            coin_type: coinType,
+                            price_usd: price,
+                            quantity_available: quantity,
+                            status: 'active',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    
+                    if (insertError) throw insertError;
+                    
+                    showToast(`✅ Виставлено ${quantity} шт. ${coinType} за $${price} кожен`);
+                    
+                    // Оновлюємо дані
+                    await loadUserCollection();
+                    if (document.getElementById('buyTab').classList.contains('active')) {
+                        await loadListings();
+                    }
+                    
+                } catch (error) {
+                    console.error('Listing error:', error);
+                    showToast(`❌ Помилка: ${error.message}`, true);
+                    await loadUserCollection(); // повертаємо стан
+                } finally {
+                    listBtn.disabled = false;
+                    listBtn.textContent = 'Виставити на барахолку';
+                }
+            }
+            
+            // ==================== ЗАВАНТАЖЕННЯ АКТИВНИХ ОГОЛОШЕНЬ (ВИПРАВЛЕНО – ПОКАЗУЄМО ВЛАСНІ) ====================
+            async function loadListings() {
+                const container = document.getElementById('listingsContainer');
+                container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Завантаження...</div>';
+                
+                try {
+                    let query = supabase
+                        .from('flea_market_listings')
+                        .select(`
+                            id,
+                            seller_id,
+                            coin_type,
+                            price_usd,
+                            quantity_available,
+                            created_at,
+                            users:users!seller_id(first_name, last_name)
+                        `)
+                        .eq('status', 'active');
+                    
+                    if (currentFilter !== 'all') {
+                        query = query.eq('coin_type', currentFilter);
+                    }
+                    
+                    const { data, error } = await query.order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<div class="no-listings"><i class="fas fa-store-slash"></i> Активних оголошень немає. Будьте першим, хто виставить монету на барахолку!</div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = '';
+                    let hasListings = false;
+                    
+                    for (const listing of data) {
+                        hasListings = true;
+                        const isOwnListing = listing.seller_id === currentUser.id;
+                        
+                        const sellerName = listing.users 
+                            ? `${listing.users.first_name || ''} ${listing.users.last_name || ''}`.trim() 
+                            : 'Користувач';
+                        
+                        const card = document.createElement('div');
+                        card.className = 'listing-card';
+                        if (isOwnListing) card.classList.add('own-listing');
+                        
+                        card.innerHTML = `
+                            <div class="listing-coin">
+                                <img src="витасик.png" alt="${listing.coin_type}" onerror="this.src='https://via.placeholder.com/50?text=Coin'">
+                                <h3>${escapeHtml(listing.coin_type)}</h3>
+                            </div>
+                            <div class="listing-details">
+                                <div class="price">Ціна: <span>$${listing.price_usd.toFixed(2)}</span> / шт</div>
+                                <div class="quantity">📦 Доступно: ${listing.quantity_available} шт</div>
+                                <div class="seller"><i class="fas fa-user"></i> Продавець: ${isOwnListing ? 'Ви (Ваша монета)' : escapeHtml(sellerName)}</div>
+                            </div>
+                            <button class="buy-btn" data-id="${listing.id}" data-price="${listing.price_usd}" data-max="${listing.quantity_available}" data-coin="${escapeHtml(listing.coin_type)}" data-seller="${listing.seller_id}" ${isOwnListing ? 'disabled' : ''}>
+                                ${isOwnListing ? 'Ваша монета' : 'Купити'}
+                            </button>
+                        `;
+                        container.appendChild(card);
+                    }
+                    
+                    if (!hasListings) {
+                        container.innerHTML = '<div class="no-listings"><i class="fas fa-store-slash"></i> Немає активних оголошень</div>';
+                    } else {
+                        // Додаємо обробники тільки для активних кнопок
+                        document.querySelectorAll('.buy-btn:not([disabled])').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
+                                const listingId = parseInt(btn.dataset.id);
+                                const price = parseFloat(btn.dataset.price);
+                                const maxQty = parseInt(btn.dataset.max);
+                                const sellerId = btn.dataset.seller;
+                                const coinType = btn.dataset.coin;
+                                await handlePurchase(listingId, price, maxQty, sellerId, coinType, btn);
+                            });
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('Load listings error:', error);
+                    container.innerHTML = `<div class="no-listings"><i class="fas fa-exclamation-triangle"></i> Помилка завантаження: ${error.message}</div>`;
+                }
+            }
+            
+            // ==================== ПОКУПКА ====================
+            async function handlePurchase(listingId, price, maxQty, sellerId, coinType, buttonElement) {
+                if (!currentUser) {
+                    showToast('Авторизуйтесь для покупки', true);
+                    return;
+                }
+                
+                if (currentUser.id === sellerId) {
+                    showToast('❌ Не можна купити власну монету', true);
+                    return;
+                }
+                
+                let qtyToBuy = 1;
+                if (maxQty > 1) {
+                    const userInput = prompt(`Скільки монет купити? (до ${maxQty})`, '1');
+                    if (userInput === null) return;
+                    qtyToBuy = parseInt(userInput);
+                    if (isNaN(qtyToBuy) || qtyToBuy < 1 || qtyToBuy > maxQty) {
+                        showToast('❌ Невірна кількість', true);
+                        return;
+                    }
+                }
+                
+                const totalCost = qtyToBuy * price;
+                
+                if (currentUser.balance < totalCost) {
+                    showToast(`❌ Недостатньо USD. Потрібно $${totalCost.toFixed(2)}, ваш баланс: $${currentUser.balance.toFixed(2)}`, true);
+                    return;
+                }
+                
+                const originalText = buttonElement.textContent;
+                buttonElement.disabled = true;
+                buttonElement.textContent = 'Обробка...';
+                
+                try {
+                    // 1. Списуємо USD з покупця
+                    const newBuyerBalance = currentUser.balance - totalCost;
+                    const { error: deductError } = await supabase
+                        .from('users')
+                        .update({ balance: newBuyerBalance })
+                        .eq('id', currentUser.id);
+                    if (deductError) throw new Error('Помилка списання коштів');
+                    
+                    // 2. Додаємо USD продавцю
+                    const { data: sellerData, error: sellerFetchError } = await supabase
+                        .from('users')
+                        .select('balance')
+                        .eq('id', sellerId)
+                        .single();
+                    if (sellerFetchError) throw new Error('Не вдалося знайти продавця');
+                    
+                    const newSellerBalance = sellerData.balance + totalCost;
+                    const { error: addError } = await supabase
+                        .from('users')
+                        .update({ balance: newSellerBalance })
+                        .eq('id', sellerId);
+                    if (addError) throw new Error('Помилка переказу продавцю');
+                    
+                    // 3. Оновлюємо оголошення
+                    const newQty = maxQty - qtyToBuy;
+                    if (newQty === 0) {
+                        await supabase
+                            .from('flea_market_listings')
+                            .update({ status: 'sold', updated_at: new Date().toISOString() })
+                            .eq('id', listingId);
+                    } else {
+                        await supabase
+                            .from('flea_market_listings')
+                            .update({ quantity_available: newQty, updated_at: new Date().toISOString() })
+                            .eq('id', listingId);
+                    }
+                    
+                    // 4. Додаємо монету до колекції покупця
+                    const { data: existingBuyer, error: fetchError } = await supabase
+                        .from('collections')
+                        .select('quantity')
+                        .eq('user_id', currentUser.id)
+                        .eq('coin_type', coinType)
+                        .maybeSingle();
+                    
+                    if (existingBuyer) {
+                        await supabase
+                            .from('collections')
+                            .update({ quantity: existingBuyer.quantity + qtyToBuy, updated_at: new Date().toISOString() })
+                            .eq('user_id', currentUser.id)
+                            .eq('coin_type', coinType);
+                    } else {
+                        await supabase
+                            .from('collections')
+                            .insert({ user_id: currentUser.id, coin_type: coinType, quantity: qtyToBuy });
+                    }
+                    
+                    // 5. Записуємо покупку
+                    await supabase
+                        .from('flea_market_purchases')
+                        .insert({
+                            listing_id: listingId,
+                            buyer_id: currentUser.id,
+                            seller_id: sellerId,
+                            coin_type: coinType,
+                            quantity: qtyToBuy,
+                            price_usd: price,
+                            total_usd: totalCost
+                        });
+                    
+                    // 6. Оновлюємо локального користувача
+                    currentUser.balance = newBuyerBalance;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    document.getElementById('balanceBadge').innerHTML = `Ваш USD: <span>$${currentUser.balance.toFixed(2)}</span>`;
+                    
+                    showToast(`✅ Куплено ${qtyToBuy} шт. ${coinType} за $${totalCost.toFixed(2)}`);
+                    
+                    // Оновлюємо всі вкладки
+                    await loadUserCollection();
+                    await loadListings();
+                    
+                } catch (error) {
+                    console.error('Purchase error:', error);
+                    showToast(`❌ Помилка: ${error.message}`, true);
+                } finally {
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = originalText;
+                }
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+            
+            // ==================== ПЕРЕМИКАННЯ ВКЛАДОК ====================
+            function switchTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.getElementById(`${tabId}Tab`).classList.add('active');
+                
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.tab === tabId) btn.classList.add('active');
+                });
+                
+                if (tabId === 'buy') {
+                    loadListings();
+                } else if (tabId === 'sell') {
+                    loadUserCollection();
+                }
+            }
+            
+            // ==================== ІНІЦІАЛІЗАЦІЯ ====================
+            document.addEventListener('DOMContentLoaded', async () => {
+                const authed = await checkAuth();
+                if (!authed) return;
+                
+                // Обробники вкладок
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+                });
+                
+                // Завантажуємо початкові дані
+                await loadListings();
+                await loadUserCollection();
+                
+                // Фільтр
+                const filterSelect = document.getElementById('coinFilter');
+                filterSelect.addEventListener('change', async (e) => {
+                    currentFilter = e.target.value;
+                    await loadListings();
+                });
+                
+                // Кнопка продажу
+                const createBtn = document.getElementById('createListingBtn');
+                if (createBtn) createBtn.addEventListener('click', createListing);
+                
+                // Кнопка акаунта в хедері
+                const accountBtn = document.getElementById('accountBtn');
+                if (accountBtn) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.location.href = 'dashboard.html';
+                    });
+                }
+                
+                // Вихід
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'index.html';
+                    });
+                }
+                
+                // Випадаюче меню
+                const dropdown = document.getElementById('accountDropdown');
+                if (accountBtn && dropdown) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        dropdown.classList.toggle('show');
+                    });
+                    document.addEventListener('click', () => {
+                        dropdown.classList.remove('show');
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Івент: Вітасік Coin | Misha Corporation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #0a0c0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        .event-container {
+            max-width: 700px;
+            margin: 100px auto 40px;
+            background: #111316;
+            border: 2px solid #e6b422;
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+        }
+        .event-coin-img {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 24px;
+            background: #1e2126;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .event-coin-img img { width: 80%; }
+        .event-title { font-size: 2rem; color: #e6b422; margin-bottom: 16px; }
+        .event-description { color: #9ca3af; margin-bottom: 24px; line-height: 1.6; }
+        .price-tag { font-size: 2rem; color: #fff; margin-bottom: 32px; }
+        .price-tag span { color: #e6b422; font-weight: bold; }
+        .quantity-input {
+            width: 120px;
+            padding: 10px;
+            margin: 16px auto;
+            background: #1e2126;
+            border: 1px solid #3f444e;
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .buy-event-btn {
+            background: #e6b422;
+            color: #0a0c0f;
+            border: none;
+            border-radius: 60px;
+            padding: 16px 48px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: block;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        .buy-event-btn:hover:not(:disabled) { background: #ffd966; transform: scale(1.02); }
+        .buy-event-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .message { margin-top: 24px; padding: 12px; border-radius: 8px; display: none; }
+        .message.success { display: block; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
+        .message.error { display: block; background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; }
+        .balance-info {
+            background: #1e2126;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 1.1rem;
+        }
+        .balance-info span { color: #e6b422; font-weight: bold; }
+        @media (max-width: 768px) {
+            .event-container { margin: 80px 16px 20px; padding: 24px; }
+            .event-title { font-size: 1.6rem; }
+            .price-tag { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <div class="logo">
+                <div class="gold-bar"></div>
+                <span class="logo-text">Misha Corporation</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="event.html" class="active">івент</a></li>
+                    <li><a href="index.html">Головна</a></li>
+                    <li><a href="crypto.html" class="crypto-nav-link">₿ Крипта</a></li>
+                    <li><a href="about.html">Про нас</a></li>
+                    <li><a href="contacts.html">Контакти</a></li>
+                </ul>
+            </nav>
+            <div class="account-header-btn">
+                <button class="account-btn" id="accountBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="accountBtnText">Кабінет</span>
+                </button>
+                <div class="account-dropdown" id="accountDropdown">
+                    <a href="dashboard.html">📊 Панель керування</a>
+                    <a href="#" id="logoutBtn">🚪 Вийти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="event-container">
+                <div class="event-coin-img">
+                    <img src="витасик.png" alt="Вітасік Coin" onerror="this.src='https://via.placeholder.com/140?text=Vitasyk'">
+                </div>
+                <h1 class="event-title">Вітасік Coin</h1>
+                <p class="event-description">
+                    🎉 **Ексклюзивна колекційна монета!** 🎉<br>
+                    Лімітована серія. Після придбання монета з'явиться у вашій колекції.<br>
+                    Ви можете виставити її на барахолку за власною ціною.
+                </p>
+                <div class="balance-info" id="balanceInfo">Ваш баланс: <span>$0.00</span></div>
+                <div class="price-tag">Ціна: <span>$300.00</span> / шт</div>
+                <input type="number" id="eventQuantity" class="quantity-input" value="1" min="1" step="1">
+                <button class="buy-event-btn" id="eventBuyBtn">Придбати Вітасік Coin</button>
+                <div id="eventMessage" class="message"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-left">Misha Corporation © 2026</div>
+            <div class="footer-center">Довіряти нам — це ваше майбутнє, якщо ви мрієте про повну ніщету.</div>
+            <div class="footer-right">2026 рік — рік ваших мрій, які гарантовано не збудуться.</div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            const SUPABASE_URL = 'https://ikoonalxzxseukvevyfu.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_d9WXxn-H3c_ja_eUXD2ziA_bwSjIthl';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            const COIN_TYPE = 'Вітасік Coin';
+            const PRICE_PER_COIN = 300.00;
+            
+            let currentUser = null;
+            
+            async function checkAuth() {
+                const saved = localStorage.getItem('currentUser');
+                if (!saved) {
+                    window.location.href = 'register.html';
+                    return false;
+                }
+                try {
+                    const user = JSON.parse(saved);
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (error || !data) {
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'register.html';
+                        return false;
+                    }
+                    currentUser = data;
+                    document.getElementById('accountBtnText').textContent = currentUser.first_name || 'Кабінет';
+                    document.getElementById('balanceInfo').innerHTML = `Ваш баланс: <span>$${currentUser.balance.toFixed(2)}</span>`;
+                    return true;
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'register.html';
+                    return false;
+                }
+            }
+            
+            function showMessage(element, text, type) {
+                element.textContent = text;
+                element.className = `message ${type}`;
+                setTimeout(() => {
+                    element.style.display = 'none';
+                    element.className = 'message';
+                }, 5000);
+            }
+            
+            async function buyVitasykCoin() {
+                const msgDiv = document.getElementById('eventMessage');
+                const qtyInput = document.getElementById('eventQuantity');
+                let qty = parseInt(qtyInput.value);
+                
+                if (isNaN(qty) || qty < 1) {
+                    showMessage(msgDiv, '❌ Введіть коректну кількість (мінімум 1)', 'error');
+                    return;
+                }
+                
+                const totalCost = qty * PRICE_PER_COIN;
+                
+                if (currentUser.balance < totalCost) {
+                    showMessage(msgDiv, `❌ Недостатньо коштів. Потрібно $${totalCost.toFixed(2)}, ваш баланс: $${currentUser.balance.toFixed(2)}`, 'error');
+                    return;
+                }
+                
+                const buyBtn = document.getElementById('eventBuyBtn');
+                buyBtn.disabled = true;
+                buyBtn.textContent = 'Обробка...';
+                
+                try {
+                    // Start a transaction by deducting balance first
+                    const newBalance = currentUser.balance - totalCost;
+                    const { error: updateBalanceError } = await supabase
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', currentUser.id);
+                    
+                    if (updateBalanceError) throw new Error('Помилка оновлення балансу: ' + updateBalanceError.message);
+                    
+                    // Check if user already has this coin in collections
+                    const { data: existing, error: fetchError } = await supabase
+                        .from('collections')
+                        .select('quantity')
+                        .eq('user_id', currentUser.id)
+                        .eq('coin_type', COIN_TYPE)
+                        .maybeSingle();
+                    
+                    if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+                    
+                    if (existing) {
+                        const newQty = existing.quantity + qty;
+                        const { error: updateError } = await supabase
+                            .from('collections')
+                            .update({ quantity: newQty, updated_at: new Date().toISOString() })
+                            .eq('user_id', currentUser.id)
+                            .eq('coin_type', COIN_TYPE);
+                        if (updateError) throw updateError;
+                    } else {
+                        const { error: insertError } = await supabase
+                            .from('collections')
+                            .insert({
+                                user_id: currentUser.id,
+                                coin_type: COIN_TYPE,
+                                quantity: qty
+                            });
+                        if (insertError) throw insertError;
+                    }
+                    
+                    // Log purchase
+                    await supabase
+                        .from('event_purchases')
+                        .insert({
+                            user_id: currentUser.id,
+                            coin_type: COIN_TYPE,
+                            quantity: qty,
+                            price_usd: PRICE_PER_COIN
+                        });
+                    
+                    // Update local user
+                    currentUser.balance = newBalance;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    document.getElementById('balanceInfo').innerHTML = `Ваш баланс: <span>$${currentUser.balance.toFixed(2)}</span>`;
+                    showMessage(msgDiv, `✅ Успішно придбано ${qty} шт. Вітасік Coin за $${totalCost.toFixed(2)}! Перейдіть у "Моя колекція", щоб побачити.`, 'success');
+                    
+                    qtyInput.value = '1';
+                    
+                } catch (error) {
+                    console.error('Purchase error:', error);
+                    showMessage(msgDiv, `❌ Помилка: ${error.message || 'Спробуйте пізніше'}`, 'error');
+                } finally {
+                    buyBtn.disabled = false;
+                    buyBtn.textContent = 'Придбати Вітасік Coin';
+                }
+            }
+            
+            document.addEventListener('DOMContentLoaded', async () => {
+                const authed = await checkAuth();
+                if (authed) {
+                    document.getElementById('eventBuyBtn').addEventListener('click', buyVitasykCoin);
+                }
+                
+                const accountBtn = document.getElementById('accountBtn');
+                if (accountBtn) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.location.href = 'dashboard.html';
+                    });
+                }
+                
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'index.html';
+                    });
+                }
+                
+                const dropdown = document.getElementById('accountDropdown');
+                if (accountBtn && dropdown) {
+                    accountBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        dropdown.classList.toggle('show');
+                    });
+                    document.addEventListener('click', () => {
+                        dropdown.classList.remove('show');
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
